@@ -1,0 +1,10 @@
+Google Drive Obtaining Access to Files
+
+getFiles.py is template for getting any file type on google drive
+	- all that needs to be changed is driveId, query (q) for the specific file
+	- currently: getting deposition .log files specifically in 'Log Files' folders in traveler docs
+
+Total Parts Printed Counter
+- For each printer?
+- Supplementary Parts? 
+

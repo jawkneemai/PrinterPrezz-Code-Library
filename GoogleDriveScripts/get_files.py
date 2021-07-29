@@ -51,7 +51,7 @@ def search_drive(service, drive_id, query, page_token):
 	# Returns: Results of that search
 	return service.files().list(
 				pageSize=1000, 
-				fields="nextPageToken, files(id, name, mimeType, createdTime, parents)", 
+				fields="nextPageToken, files(id, name, mimeType, createdTime, parents)", # Edit these fields if needed
 				includeItemsFromAllDrives=1, 
 				supportsAllDrives=1,
 				orderBy='modifiedTime', 

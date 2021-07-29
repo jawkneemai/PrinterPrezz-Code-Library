@@ -31,6 +31,10 @@ def combine_parts_lists(*args):
 	dfs = read_excel(xls_paths[0], engine='openpyxl')
 	print(type(dfs))
 	print(dfs)
+
+	# Currently: .xlsx giving openpyxl reading errors because it's being downloaded programatically, 
+	# if I download the PL manually it works..
+
 '''
 	for path in xls_paths:
 		print(path.split('\\')[-1])

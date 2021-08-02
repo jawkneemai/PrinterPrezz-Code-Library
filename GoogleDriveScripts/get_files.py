@@ -1,5 +1,41 @@
 # Johnathan Mai
-# Function: Obtaining access to files on google drive to do whatever with them
+
+'''
+Directory of Functions
+
+download_file_google_api(googleApiService, fileObject, downloadPath)
+	Purpose: Initiates a download of the specified file object to the specified download path.
+	Input: googleApiService (google API service object, initiated with credentials), 
+			fileObject (google API object, queried from the API), 
+			downloadPath (string, path to desired download destination)
+	Returns: Nothing
+
+convert_google_time(time_string)
+	Purpose: Converts the google API's given time format into Python's datetime format.
+	Input: time_string (string, google API file's "createdBy" attribute)
+	Returns: Python's datetime object of that time
+
+search_drive(service, drive_id, query, page_token)
+	Purpose: google API call that searches the drive for specified query and drive_id.
+	Input: service (google API service object, initiated with credentials),
+			drive_id (string, id of the google drive you want to search),
+			query (string, look up google API's query parameters),
+			page_token (Bool, used to keep track of which page your API call is on. Google only returns a limited number of results at a time and uses a pageToken to get to the next page of results)
+	Returns: The results of the API call
+
+get_files()
+	Purpose: Main function for getting whatever files you are looking for on Google Drive. Manually edit the queries for each search.
+	Input: None
+	Returns: Downloads file to destination.
+	Currently configured to downloading all the log files under Log Files folder in the Travelers.
+
+get_parts_list()
+	Purpose: Downloads all of the parts list excel files in the travelers and combines the parts list in one excel for easy manipulation.
+	Input: None
+	Returns: Downloads files to destination and creates a new excel sheet with all the parts lists.
+	In future, could add functionality to separate coupons from customer parts. Naming in traveler documents is too inconsistent right now.
+
+'''
 
 # Python Imports
 import os

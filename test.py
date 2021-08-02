@@ -22,6 +22,7 @@ for path in filePaths:
 
 '''
 
+get_files.get_parts_list()
 pl.combine_parts_lists(folderPath)
 pl.count_parts()
 pl.count_coupons()

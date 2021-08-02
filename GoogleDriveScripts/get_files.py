@@ -202,7 +202,6 @@ def get_parts_list():
 	
 	for file in parts_lists:
 		temp_path = parts_folder_path + '\\' + file['name']
-		print(file['mimeType'])
 		download_file_google_api(drive_service, file, temp_path)
 
 

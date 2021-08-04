@@ -20,16 +20,6 @@ time_difference(time_start, time_end)
 	Input: python datetime objects, time_start and time_end. Must have equivalent time fields (either date, date & time, or time)
 	Returns: string, the time difference in SECONDS.
 
-get_file_name(file_path)
-	Purpose: Parses the file name out of a path. No extension.
-	Input: string, path to file
-	Returns: string, solely the file name with no extension
-
-get_paths_from_folder(folder_path)
-	Purpose: Gets paths to all files in a folder. 
-	Input: string, path to folder
-	Returns: list of strings, all of the paths in a list
-
 parse_log(file_path)
 	Purpose: Takes .log file from a print job, parses all of the print data into readable columns in an .xlsx
 	Input: string, file path of the .log file
@@ -68,6 +58,8 @@ from pandas import read_excel
 import pandas
 from openpyxl import load_workbook
 from openpyxl import Workbook
+from Library import ancillary
+#from ancillary import get_file_name, get_paths_from_folder
 
 ## Functions ##
 
@@ -86,18 +78,6 @@ def time_difference(time_start, time_end):
 		t_end = t_end + datetime.timedelta(hours=1)
 		t_elapsed = t_start - t_end
 	return t_elapsed.total_seconds()
-
-def get_file_name(file_path):
-	slash_index = [pos for pos, char in enumerate(file_path) if char == '\\']
-	file_name = file_path[slash_index[len(slash_index)-1]+1:len(file_path)]
-	file_name = file_name.split('.')[0]
-	return file_name
-
-def get_paths_from_folder(folder_path):
-	paths = []
-	for path in os.listdir(folder_path):
-		paths.append(folder_path + '\\' + path)
-	return paths
 
 def parse_log(file_path):
 	# File Open
@@ -184,10 +164,10 @@ def parse_log(file_path):
 		final_rows.append(temp_row)
 
 	# Write to xls
-	xls_folder_path = os.getcwd() + '\\' + 'ParsedLogs'
+	xls_folder_path = os.getcwd() + '\\Data\\ParsedLogs'
 	if not os.path.isdir(xls_folder_path):
 		os.mkdir(xls_folder_path)
-	excelPath = xls_folder_path + '\\' + get_file_name(file_path)
+	excelPath = xls_folder_path + '\\' + ancillary.get_file_name(file_path)
 	writer = pandas.ExcelWriter(excelPath + '.xlsx', engine='xlsxwriter')
 
 	df = pandas.DataFrame(final_rows)
@@ -196,6 +176,7 @@ def parse_log(file_path):
 	writer.save()
 
 	# Close
+	print('Parsed ' + ancillary.get_file_name(file_path))
 	printerlog.close()
 	return
 
@@ -226,7 +207,7 @@ def get_machine_from_log(file_path):
 	return machine
 
 def compile_data_from_logs(folder_path, master_path):
-	file_paths = get_paths_from_folder(folder_path)
+	file_paths = ancillary.get_paths_from_folder(folder_path)
 	master_df = pandas.DataFrame()
 
 	# Open excel
@@ -235,7 +216,7 @@ def compile_data_from_logs(folder_path, master_path):
 		temp_wb = load_workbook(path)
 		temp_machine = temp_wb.sheetnames[0]
 		if '47' in temp_machine: # Looking for all logs from LM47 Steve
-			temp_name = pandas.Series([get_file_name(path)])
+			temp_name = pandas.Series([ancillary.get_file_name(path)])
 			temp_data = temp_log['O2'].transpose()
 			temp_df = pandas.DataFrame(temp_name.append(temp_data, ignore_index=True)).transpose()
 			master_df = master_df.append(temp_df)

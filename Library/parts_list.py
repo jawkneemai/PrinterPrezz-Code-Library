@@ -1,5 +1,4 @@
 # Johnathan Mai
-# Function: Analyzes multiple parts lists
 
 '''
 Directory of Functions
@@ -15,15 +14,9 @@ add_pl_to_file(xls_path, master_path)
 			master_path(string)- path to master .xlsx file to append to.
 	Returns: Nothing, creates master .xlsx file if not already existing.
 
-get_paths_from_folder(folder_path)
-	Purpose: Gets paths to all files in a folder. 
-	Input: string, path to folder
-	Returns: list of strings, all of the paths in a list
-
-make_folder(folder_name)
-	Purpose: Makes a folder at current operating path with specified name.
-	Input: folder_name(string)- desired name of folder.
-	Returns: Nothing
+count_parts()
+count_coupons()
+	Purpose: Will obtain parts and coupons respectively from the combined parts list file. Currently the naming of part IDs is too inconsistent
 
 '''
 
@@ -37,8 +30,9 @@ from os import path
 # Non-Python Imports
 from pandas import read_excel
 import pandas as pd
-from openpyxl import load_workbook
-from openpyxl import Workbook
+from openpyxl import load_workbook, Workbook
+from Library import ancillary
+#from ancillary import get_paths_from_folder, make_folder 
 
 # Functions
 def combine_parts_lists(*args):
@@ -108,20 +102,6 @@ def add_pl_to_file(xls_path, master_path):
 		output_df.to_excel(writer, sheet_name=sheet_name, index=False)
 		writer.save()
 	return
-
-def get_paths_from_folder(folder_path):
-	paths = []
-	for path in os.listdir(folder_path):
-		paths.append(folder_path + '\\' + path)
-	return paths
-
-def make_folder(folder_name):
-	folder_path = os.getcwd() + '\\' + folder_name
-	if not os.path.isdir(folder_path):
-		os.mkdir(folder_path)
-	else: 
-		print('Folder exists already')
-	return folder_path
 
 def main():
 	print('main()')

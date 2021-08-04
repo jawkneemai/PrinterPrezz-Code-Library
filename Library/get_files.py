@@ -56,9 +56,6 @@ SCOPES = ['https://www.googleapis.com/auth/drive.readonly',
 			'https://www.googleapis.com/auth/spreadsheets.readonly']
 
 def download_file_google_api(googleApiService, fileObject, downloadPath):
-	# Function: Downloads the file object from Google Drive to download path.
-	# Returns: Nothing.
-	# fileObject is the google API requested item (not google doc/sheets of course)
 	if 'google-apps' in fileObject['mimeType']:
 			print('Google Doc/Sheets file!\n')	
 			# Fill in solution for google sheets/doc file ~~~~~~~~~~~~~~~~~~~~~~~
@@ -73,8 +70,6 @@ def download_file_google_api(googleApiService, fileObject, downloadPath):
 			print('Download %d%%. \n' % int(status.progress() * 100))
 
 def convert_google_time(time_string):
-	# Function: Converts the the 'createdTime' attribute of google API object to python datetime object.
-	# Returns: Python datetime Object
 	date, time = time_string[:-1].split('T') #  There's a weird Z at the end of it..
 	hour, minute, seconds =  time.split(':')
 	seconds_rounded = str(math.floor(float(seconds)))
@@ -83,8 +78,6 @@ def convert_google_time(time_string):
 	return dt.strptime((date + ' ' + time), '%Y-%m-%d %H:%M:%S')
 
 def search_drive(service, drive_id, query, page_token):
-	# Function: Searches the drive ID for the intended query
-	# Returns: Results of that search
 	return service.files().list(
 				pageSize=1000, 
 				fields="nextPageToken, files(id, name, mimeType, createdTime, parents)", # Edit these fields if needed
@@ -96,10 +89,7 @@ def search_drive(service, drive_id, query, page_token):
 				pageToken=page_token,
 				q=query).execute()
 
-def get_files():
-	# Function: Gets whatever files from the Google Drive from a query string. 
-	# Returns: Folder Path of where the files are downloaded.
-
+def get_log_files():
 	# Credentialing and starting up google drive API service
 	creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -155,7 +145,7 @@ def get_files():
 			break
 
 	# Downloading log files
-	logs_folder_path = os.getcwd() + '\\log_files'
+	logs_folder_path = os.getcwd() + '\\Data\\log_files'
 	if not os.path.isdir(logs_folder_path):
 		os.mkdir(logs_folder_path)
 	
@@ -168,9 +158,6 @@ def get_files():
 	# Where I left off: someone left a log file as a google doc and you have to use file export on it instead of downloading to get its contents 
 
 def get_parts_list():
-	# Function: Gets whatever files from the Google Drive from a query string. 
-	# Returns: Folder Path of where the files are downloaded.
-
 	# Credentials and drive_service Building
 	creds = None
 	if os.path.exists('token.json'):

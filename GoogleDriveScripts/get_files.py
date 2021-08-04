@@ -148,8 +148,8 @@ def get_files():
 	while True:
 		results = search_drive(drive_service, drive_id, query_deposition_logs, page_token)
 		for file in results.get('files', []):
-			if file['parents'][0] in log_folder_ids:
-				log_files.append(file)
+			#if file['parents'][0] in log_folder_ids:
+			log_files.append(file)
 		page_token = results.get('nextPageToken', None)
 		if page_token is None:
 			break

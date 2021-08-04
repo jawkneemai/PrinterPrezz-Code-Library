@@ -8,6 +8,9 @@ from ManufacturingScripts import analyze_parts_list as pl
 
 
 folderPath = os.getcwd() + '\\log_files'
+folder_path = os.getcwd()+'\\O2Logs.xlsx'
+print(parse_logs.get_file_name(folder_path))
+
 #folderPath = get_files.get_files()
 '''
 filePaths = parse_logs.get_paths_from_folder(folderPath)
@@ -18,8 +21,8 @@ for path in filePaths:
 	else:
 		print(path + '\n' + 'is not a log file.')
 '''
-folderPath = os.getcwd() + '\\ParsedLogs'
-parse_logs.compile_data_from_logs(folderPath, os.getcwd()+'\\O2Logs.xlsx')
+#folderPath = os.getcwd() + '\\ParsedLogs'
+#parse_logs.compile_data_from_logs(folderPath, os.getcwd()+'\\O2Logs.xlsx')
 
 
 #get_files.get_files()

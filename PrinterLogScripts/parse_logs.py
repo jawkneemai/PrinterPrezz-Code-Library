@@ -2,6 +2,58 @@
 # Requires Python 3
 # Install pandas library: (pip install pandas) in command line
 
+'''
+Directory of Functions
+
+remove_colon(strang)
+	Purpose: Removes colon from in between string (data field in log files that are xx:##)
+	Input: string, in xx:## format
+	Returns: string, the ##
+
+remove_equal(strang)
+	Purpose: Removes equal sign in between string (data field in log files that are xx=##)
+	Input: string, in xx=## format
+	Returns: string, the ##
+
+time_difference(time_start, time_end)
+	Purpose: Gets the time difference between time_start and time_end. 
+	Input: python datetime objects, time_start and time_end. Must have equivalent time fields (either date, date & time, or time)
+	Returns: string, the time difference in SECONDS.
+
+get_file_name(file_path)
+	Purpose: Parses the file name out of a path. No extension.
+	Input: string, path to file
+	Returns: string, solely the file name with no extension
+
+get_paths_from_folder(folder_path)
+	Purpose: Gets paths to all files in a folder. 
+	Input: string, path to folder
+	Returns: list of strings, all of the paths in a list
+
+parse_log(file_path)
+	Purpose: Takes .log file from a print job, parses all of the print data into readable columns in an .xlsx
+	Input: string, file path of the .log file
+	Returns: Nothing. Creates .xlsx file in designated folder corresponding to that .log file, with the data fields for every print layer.
+
+get_date_from_log(file_path)
+	Purpose: Gets the date/time of start of log file.
+	Input: string, path to .log file
+	Returns: datetime object, including date and time of day.
+
+get_machine_from_log(file_path)
+	Purpose: Gets the machine number that produced the log file.
+	Input: string, path to .log file
+	Returns: string, machine name that produced log
+
+compile_data_from_logs(folder_path, master_path)
+	Purpose: Compiles whatever data field from folder of .xlsx logs into one sheet for easy manipulation. Ideally called after parse_logs()
+	Input: folder_path(string)- path to folder of .xlsx logs
+			master_path(string)- path to final file.xlsx that contains the data
+			data_fields[strings]- data fields to extract from log files
+	Returns: Nothing
+
+'''
+
 ## Imports ##
 # Python Modules
 import tkinter as tkint
@@ -26,9 +78,6 @@ def remove_equal(strang):
 	return strang.split('=')[-1]
 
 def time_difference(time_start, time_end):
-	# Function: Gets the time difference between two datetime STRINGS. (HH:MM:SS)
-	# Returns: Time difference in seconds
-
 	t_start = dt.strptime(time_start, '%H:%M:%S')
 	t_end = dt.strptime(time_end, '%H:%M:%S')
 	t_elapsed = t_start - t_end
@@ -38,42 +87,35 @@ def time_difference(time_start, time_end):
 		t_elapsed = t_start - t_end
 	return t_elapsed.total_seconds()
 
-def get_file_name(filePath):
-	# Function: Gets name of file from the end of path.
-	# Returns: Name of file (no extension). If extension longer than 3 letters, change the 4
-	slash_index = [pos for pos, char in enumerate(filePath) if char == '\\']
-	return filePath[slash_index[len(slash_index)-1]+1:(len(filePath)-5)]
+def get_file_name(file_path):
+	slash_index = [pos for pos, char in enumerate(file_path) if char == '\\']
+	file_name = file_path[slash_index[len(slash_index)-1]+1:len(file_path)]
+	file_name = file_name.split('.')[0]
+	return file_name
 
-def get_paths_from_folder(folderPath):
-	# Function: Returns paths of all files [list] in a folder
-	# Returns: ^
+def get_paths_from_folder(folder_path):
 	paths = []
-	for path in os.listdir(folderPath):
-		paths.append(folderPath + '\\' + path)
+	for path in os.listdir(folder_path):
+		paths.append(folder_path + '\\' + path)
 	return paths
 
-def parse_log(filePath):
-	# Function: Parses the log at the file path into the data fields listed below.
-	# Returns: Excel sheet in designated folder.
-
+def parse_log(file_path):
 	# File Open
 	try:
-		printerlog = open(filePath, 'r')
+		printerlog = open(file_path, 'r')
 	except:
 		sys.exit('No File Selected')
-		
+
 	# Parse
 	data_fields = ['L', 'D.Tm', 'B', 'F', 'FL', 'FR', 
 	'CoaterSp', 'BlowerF', 'RPMBlowerSp', 'setp', 'real', 'Tlaser', 
 	'P', 'O2', 'Tbuild', 'Par', 'Pca', 'dPfil'] 
-	# DATAFIELDS ONLY WORK FOR TRAVELER NUMBERS T4213 AND BEYOND (OCTOBER 12, 2020) 
-	# BECAUSE 'BlowerSp' IS DIFFERENT VARIABLE BEFORE THAT
 
-	data_fields_cutoff1 = dt.strptime('10/11/2020', '%m/%d/%Y') 
-	data_fields_cutoff2 = dt.strptime('2/7/2020', '%m/%d/%Y')
+	# Some manual tinkering to deal with different data field formats from earlier printer logs. (Mainly "RPMBlowerSp was ModBlowerSp before and didn't exist before that. O2 data has more fields in v2 and v3.")
+	data_fields_cutoff1 = dt.strptime('10/11/2020', '%m/%d/%Y') # After this date: logs v3
+	data_fields_cutoff2 = dt.strptime('2/7/2020', '%m/%d/%Y') # Before this date: logs v1. logs v2 in between.
 	corrector = 0 # Corrector for earlier printer logs that had a different format.
-
-	log_date = get_date_from_log(filePath)
+	log_date = get_date_from_log(file_path)
 	if data_fields_cutoff2 < log_date < data_fields_cutoff1:
 		data_fields[8] = 'ModBlowerSp'
 	elif log_date < data_fields_cutoff2:
@@ -123,7 +165,7 @@ def parse_log(filePath):
 		temp_row.append(remove_colon(temp_split[14])) # CoaterSp
 		temp_row.append(temp_split[16]) # Blower F
 		if corrector == 0:
-			temp_row.append('') # RPMBlowerSp
+			temp_row.append('') # RPMBlowerSp / ModBlowerSp
 			temp_row.append(remove_equal(temp_split[18])) # setp
 			temp_row.append(remove_equal(temp_split[19])) # real
 		temp_row.append(temp_split[21-corrector]) # Tlaser
@@ -138,31 +180,28 @@ def parse_log(filePath):
 		temp_row.append(remove_colon(temp_split[31-corrector])) # Par
 		temp_row.append(remove_colon(temp_split[32-corrector])) # Pca
 		temp_row.append(remove_colon(temp_split[33-corrector])) # dPfil
-
-
+		# ~~~~~~~~~~~~~~~~~~~~~~~~
 		final_rows.append(temp_row)
 
 	# Write to xls
-	xlsFolderPath = os.getcwd() + '\\' + 'ParsedLogs'
-	if not os.path.isdir(xlsFolderPath):
-		os.mkdir(xlsFolderPath)
-	excelPath = xlsFolderPath + '\\' + get_file_name(filePath)
+	xls_folder_path = os.getcwd() + '\\' + 'ParsedLogs'
+	if not os.path.isdir(xls_folder_path):
+		os.mkdir(xls_folder_path)
+	excelPath = xls_folder_path + '\\' + get_file_name(file_path)
 	writer = pandas.ExcelWriter(excelPath + '.xlsx', engine='xlsxwriter')
 
 	df = pandas.DataFrame(final_rows)
 	df.columns = data_fields
-	df.to_excel(writer, sheet_name=get_machine_from_log(filePath), index=False)
+	df.to_excel(writer, sheet_name=get_machine_from_log(file_path), index=False)
 	writer.save()
 
 	# Close
 	printerlog.close()
+	return
 
-def get_date_from_log(filePath):
-	# Function: Gets the date/time of first layer print of log file, through same process of parse_log().
-	# Returns: python datetime object including date and time of day.
-
+def get_date_from_log(file_path):
 	try:
-		printerlog = open(filePath, 'r')
+		printerlog = open(file_path, 'r')
 	except:
 		sys.exit('No File Selected.')
 	row = ''
@@ -173,12 +212,9 @@ def get_date_from_log(filePath):
 	row_split = row.split()[4] + ' ' + row.split()[5] + row.split()[6] + ' ' + row.split()[8] + row.split()[9]
 	return dt.strptime(row_split, '%B %d,%Y %I:%M%p')
 
-def get_machine_from_log(filePath):
-	# Function: Determines what machine produced the log file.
-	# Returns: String, machine name that produced log
-
+def get_machine_from_log(file_path):
 	try:
-		printerlog = open(filePath, 'r')
+		printerlog = open(file_path, 'r')
 	except:
 		sys.exit('No File Selected.')
 	for temp_line in printerlog:
@@ -190,48 +226,32 @@ def get_machine_from_log(filePath):
 	return machine
 
 def compile_data_from_logs(folder_path, master_path):
-
 	file_paths = get_paths_from_folder(folder_path)
-	o2_data = {}
 	master_df = pandas.DataFrame()
+
+	# Open excel
 	for path in file_paths:
 		temp_log = read_excel(path, engine='openpyxl')
 		temp_wb = load_workbook(path)
 		temp_machine = temp_wb.sheetnames[0]
-		if '47' in temp_machine:
-			print(temp_machine)
+		if '47' in temp_machine: # Looking for all logs from LM47 Steve
 			temp_name = pandas.Series([get_file_name(path)])
 			temp_data = temp_log['O2'].transpose()
 			temp_df = pandas.DataFrame(temp_name.append(temp_data, ignore_index=True)).transpose()
 			master_df = master_df.append(temp_df)
-			print(master_df)
-			
 	master_wb = Workbook()
 	master_wb.save(master_path)
 	writer = pandas.ExcelWriter(master_path, engine='xlsxwriter')
 	master_df.to_excel(writer, sheet_name='O2 Data', index=False)
 	writer.save()
-'''
-	else:
-		master_wb = load_workbook(master_path)
-		writer = pandas.ExcelWriter(master_path, mode='a', engine='openpyxl')
-		writer.book = master_wb
-		writer.sheets = dict( (ws.title, ws) for ws in master_wb.worksheets )
-
-		# just need to append after last row now
-
-		master_ws = master_wb.active
-		startrow = master_ws.max_row
-		temp_df.to_excel(writer, index=False)
-		writer.save()
-'''
+	return
 
 def main():
 	try:
 		root = tkint.Tk()
 		root.withdraw()
-		filePath = filedialog.askopenfilename()
-		parse_log(filePath)
+		file_path = filedialog.askopenfilename()
+		parse_log(file_path)
 	except:
 		print('No File Selected.')
 

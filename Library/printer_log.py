@@ -212,8 +212,8 @@ def compile_data_from_logs(folder_path, master_path):
 
 	# Open excel
 	for path in file_paths:
-		temp_log = read_excel(path, engine='openpyxl')
 		temp_wb = load_workbook(path)
+		temp_log = read_excel(path, engine='openpyxl')
 		temp_machine = temp_wb.sheetnames[0]
 		if '47' in temp_machine: # Looking for all logs from LM47 Steve
 			temp_name = pandas.Series([ancillary.get_file_name(path)])
@@ -239,4 +239,4 @@ def main():
 if __name__ == '__main__':
 	main()
 
-print('Imported parseLogs!')
+print('Imported printer_log.py!')

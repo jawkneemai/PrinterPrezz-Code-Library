@@ -36,28 +36,32 @@ from Library import ancillary
 
 # Functions
 def combine_parts_lists(*args):
+	xls_paths = []
 	if not args:
 		print('Choose your folder')
 		try:
 			root = Tk()
 			root.withdraw()
-			filePath = filedialog.askdirectory()
-			xls_paths = get_paths_from_folder(filePath)
+			file_path = filedialog.askdirectory()
+			xls_paths = ancillary.get_paths_from_folder(file_path)
 		except:
 			print('No File Selected.')	
-	elif len(args) == 1 and type(args[0]) == str:	
+	elif len(args) == 1 and type(args[0]) == str:
 		try:
-			xls_paths = get_paths_from_folder(args[0])
+			xls_paths = ancillary.get_paths_from_folder(args[0])
 		except Exception as e:
 			print(e.args[-1])
 	else:
 		sys.exit('Pass the folder path or leave arguments empty.')
 
 	# Grabbing Part Name, QTY, Part ID columns from all .xlsx files in folder
-	master_file_path = make_folder('Combined_Parts_List') + '\\' + 'Combined_Parts_List.xlsx'
-	for file in xls_paths:
-		add_pl_to_file(file, master_file_path)
-	return
+	master_file_path = os.getcwd() + '\\Data\\Combined_Parts_List.xlsx'
+	if xls_paths:
+		for file in xls_paths:
+			add_pl_to_file(file, master_file_path)
+		return
+	else:
+		sys.exit('Had trouble finding path to parts_lists.xlsx folder')
 '''
 	This function currently combines all part lists in the specified folder into one excel for easy editing. 
 	Can't really programatically get coupons until a more consistent naming scheme is used. 
@@ -79,12 +83,15 @@ def add_pl_to_file(xls_path, master_path):
 	dfs.columns = dfs.loc[index_qty.any(axis=1)].loc[1].values.flatten().tolist() # Sets new columns because current template has NaN as first row in xls which leads to weird columns
 
 	# Part Name, QTY, Part ID targeted
-	output_df = pd.DataFrame([dfs['Part Name'], dfs['QTY'], dfs['Part ID']]).transpose()
-	output_df.columns = ['Part Name', 'QTY', 'Part ID']
+	data_fields = ['Part Name', 'QTY', 'Part ID'] # Change if you want more fields
+	mask = [value in dfs.columns for value in data_fields]
+	data_fields = [ data_fields[i] for i in range(len(data_fields)) if mask[i] ] # If one of the data fields don't exist in the PL, takes it out of the query
+
+	output_df = pd.DataFrame([ dfs[field] for field in data_fields ]).transpose()
+	output_df.columns = data_fields
 
 	# Getting Traveler Number from XLS Path
-	slash_index = [pos for pos, char in enumerate(xls_path) if char == '\\']
-	sheet_name = xls_path[slash_index[len(slash_index)-1]+1:(len(xls_path)-5)]
+	sheet_name = ancillary.get_file_name(xls_path)
 
 	# Writes Sheet to Master File
 	print('Added parts list for: ' + sheet_name)
@@ -108,3 +115,5 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
+print('Imported parts_list.py!')

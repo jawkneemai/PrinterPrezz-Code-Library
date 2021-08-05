@@ -219,7 +219,7 @@ def get_parts_list():
 		if page_token is None:
 			break
 
-	parts_folder_path = os.getcwd() + '\\parts_lists'
+	parts_folder_path = os.getcwd() + '\\Data\\parts_lists'
 	if not os.path.isdir(parts_folder_path):
 		os.mkdir(parts_folder_path)
 	

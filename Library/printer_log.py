@@ -42,6 +42,16 @@ compile_data_from_logs(folder_path, master_path)
 			data_fields[strings]- data fields to extract from log files
 	Returns: Nothing
 
+def plot_log_xy(file_path, x_field, y_field, save=False):
+	Purpose: Plots whatever fields from the log.xlsx file. Fields must match columns in .xlsx
+	Input: file_path(string)- path to log_file.xlsx
+			x_field(string)- Data field to plot on x-axis
+			y_field(string)- Data field to plot on y-axis
+			title(string)- Title for plot. If empty, will default to empty string.
+			x_label(string)- Label for x-axis. If empty, will default to x_field from log file.
+			y_label(string)- Label for y-axis. If empty, will default to y_field from log file.
+			save(bool)- Save file (or not) with file_path name in current working directory.
+			add_to_previous_plot(bool)- Overlays plot with previous plot or not. Default: false
 '''
 
 ## Imports ##
@@ -59,6 +69,8 @@ import pandas
 from openpyxl import load_workbook
 from openpyxl import Workbook
 from Library import ancillary
+import numpy as np
+from matplotlib import pyplot
 #from ancillary import get_file_name, get_paths_from_folder
 
 ## Functions ##
@@ -215,16 +227,61 @@ def compile_data_from_logs(folder_path, master_path):
 		temp_wb = load_workbook(path)
 		temp_log = read_excel(path, engine='openpyxl')
 		temp_machine = temp_wb.sheetnames[0]
+
+		# QUERY SPECIFIC DATA HERE
 		if '47' in temp_machine: # Looking for all logs from LM47 Steve
-			temp_name = pandas.Series([ancillary.get_file_name(path)])
-			temp_data = temp_log['O2'].transpose()
+			temp_name = pandas.Series([ancillary.get_file_name(path), '', '', '', '', '', 'Accumulated Time (s)'])
+			temp_data = temp_log['Accumulated Time (s)'].transpose()
 			temp_df = pandas.DataFrame(temp_name.append(temp_data, ignore_index=True)).transpose()
+			
+			# min, time to min (O2 pumpdown)(+- 0.5), max, average, stdev (max and average are of data after min)
+			temp_o2 = temp_log['O2']
+			temp_min = np.min(temp_o2)
+			temp_thresh_index = 0
+			for i in (list(range(len(temp_o2)-1))):
+				if temp_o2.iloc[i] < (temp_min + 0.5):
+					temp_thresh_index = i
+					break
+			temp_max = np.max(temp_o2.iloc[temp_thresh_index:-1])
+			temp_mean = np.mean(temp_o2.iloc[temp_thresh_index:-1])
+			temp_std = np.std(temp_o2.iloc[temp_thresh_index:-1])
+			temp_data = pandas.Series(['', temp_min, temp_df.iloc[0,temp_thresh_index+7], temp_max, temp_mean, temp_std, 'O2 (ppm)'])
+			temp_df = temp_df.append(pandas.DataFrame(temp_data.append(temp_o2.transpose(), ignore_index=True)).transpose())
+
 			master_df = master_df.append(temp_df)
+
+		print(master_df)
+
 	master_wb = Workbook()
 	master_wb.save(master_path)
 	writer = pandas.ExcelWriter(master_path, engine='xlsxwriter')
 	master_df.to_excel(writer, sheet_name='O2 Data', index=False)
 	writer.save()
+	return
+
+def plot_log_xy(file_path, x_field, y_field, title='', x_label='', y_label='', save=False, add_to_previous_plot=False):
+	temp_wb = load_workbook(file_path)
+	temp_log = read_excel(file_path, engine='openpyxl')
+
+	if add_to_previous_plot==False:
+		pyplot.clf()
+
+	if x_label == '':
+		pyplot.xlabel(x_field)
+	else:
+		pyplot.xlabel(x_label)
+	if y_label == '':
+		pyplot.ylabel(y_field)
+	else:
+		pyplot.y_label(y_label)
+
+	pyplot.title(title)
+	pyplot.plot(temp_log[x_field], temp_log[y_field])
+	if save == True:
+		pyplot.savefig(os.getcwd() + '\\Data\\Plots\\' + ancillary.get_file_name(file_path))
+
+	
+	pyplot.show(block=False)
 	return
 
 def main():

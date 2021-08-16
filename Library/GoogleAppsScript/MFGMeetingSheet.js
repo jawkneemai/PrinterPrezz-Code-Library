@@ -4,49 +4,45 @@ function testEmail() {
 }
 */
 
+// Global Variables
+const GREEN = '#b6d7a8';
+const YELLOW = '#ffe599';
+const RED = '#ea9999';
+
 function activateTrigger(e){
   var masterSheet = SpreadsheetApp.getActiveSpreadsheet();
   var currentSheet = SpreadsheetApp.getActiveSheet();
   var sheetName = currentSheet.getName();
   var rowStart = e.range.rowStart;
-  var rowEnd = e.range.rowEnd;
   var scheduleSheet = masterSheet.getSheetByName('Schedule');
-
-  const GREEN = '#b6d7a8';
-  const YELLOW = '#ffe599';
-  const RED = '#ea9999';
   
 
   if (sheetName == 'Schedule') {
     console.log('In Schedule, do nothing');
     return
   } else if (e.range.columnStart == 1 && e.range.columnEnd == 1 && e.range.rowStart <= 2000 && sheetName == 'Jobs') { // JOBS ~~~~~~~~
-    //console.log('We are in row ' + rowStart);
-    //console.log('We are in sheet ' + sheet.getName());
-    [printer, orderNum, travNum, printTime,owner] = currentSheet.getSheetValues(rowStart, 2, 1, 5)[0];
+
+    [printer, orderNum, travNum, startDay, amPm, printTime, owner, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 8)[0];
+    console.log([printer, orderNum, travNum, startDay, amPm, printTime, owner, notes]);
     
     if (e.value == 'TRUE') {
       console.log('Sending data to schedule');
       masterSheet.setActiveSheet(scheduleSheet);
-      var tempSheet = masterSheet.getActiveSheet();
-      var beginCell = tempSheet.getRange(getMachineRow(printer), 2, 1, 1);
-      fillTime(scheduleSheet, tempSheet.getRange(getMachineRow(printer), getNextAvailableTime(tempSheet, beginCell), 1, 1), printTime, YELLOW);
+      fillTime(scheduleSheet, getMachineRow(printer), travNum, startDay, printTime, amPm, YELLOW, notes);
       masterSheet.setActiveSheet(currentSheet);
+
 
     } else if (e.value == 'FALSE') {
 
       masterSheet.setActiveSheet(scheduleSheet);
-      var tempSheet = masterSheet.getActiveSheet();
-      var beginCell = tempSheet.getRange(getMachineRow(printer), 2, 1, 1);
       console.log('Removing data from schedule');
-      removeTime(scheduleSheet, tempSheet.getRange(getMachineRow(printer), getNextAvailableTime(tempSheet, beginCell)-1, 1, 1), printTime);
+      console.log(printer);
+      removeTime(scheduleSheet, getMachineRow(printer), startDay, printTime, amPm);
       masterSheet.setActiveSheet(currentSheet);
 
     } else { console.log('Something wrong with checkbox value') }
 
     return
-    //scheduleSheet.activate(); switches to scheduleSheet
-
 
 
 
@@ -54,24 +50,32 @@ function activateTrigger(e){
   } else if (e.range.columnStart == 1 && e.range.columnEnd == 1 && e.range.rowStart <= 2000 && sheetName == 'NCMR, ECO, DCO') { // NCMR ~~~~~~~~
     //console.log('We are in row ' + rowStart);
     //console.log('We are in sheet ' + sheet.getName());
-    [printer, orderNum, travNum, printTime,owner] = currentSheet.getSheetValues(rowStart, 2, 1, 5)[0];
+    [itemType, itemNum, travNum, orderNum, startDate, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 10)[0];
     
     if (e.value == 'TRUE') {
 
       console.log('Sending data to schedule');
       masterSheet.setActiveSheet(scheduleSheet);
-      var tempSheet = masterSheet.getActiveSheet();
-      var beginCell = tempSheet.getRange(getMachineRow(printer), 2, 1, 1);
-      fillTime(scheduleSheet, tempSheet.getRange(getMachineRow(printer), getNextAvailableTime(tempSheet, beginCell), 1, 1), printTime, RED);
+      var description = itemType + ' ' + itemNum;
+      if (printer == 'Metal Printers') {
+        fillTime(scheduleSheet, getMachineRow('LM74'), description, startDate, time, amPm, RED, notes);
+        fillTime(scheduleSheet, getMachineRow('LM36'), description, startDate, time, amPm, RED, notes);
+        fillTime(scheduleSheet, getMachineRow('LM47'), description, startDate, time, amPm, RED, notes);
+      } else {
+        fillTime(scheduleSheet, getMachineRow(printer), description, startDate, time, amPm, RED, notes);
+      }
       masterSheet.setActiveSheet(currentSheet);
 
     } else if (e.value == 'FALSE') {
       console.log('Removing data from schedule');
-
       masterSheet.setActiveSheet(scheduleSheet);
-      var tempSheet = masterSheet.getActiveSheet();
-      var beginCell = tempSheet.getRange(getMachineRow(printer), 2, 1, 1);
-      removeTime(scheduleSheet, tempSheet.getRange(getMachineRow(printer), getNextAvailableTime(tempSheet, beginCell)-1, 1, 1), printTime);
+      if (printer == 'Metal Printers') {
+        removeTime(scheduleSheet, getMachineRow('LM74'), startDate, time, amPm);
+        removeTime(scheduleSheet, getMachineRow('LM47'), startDate, time, amPm);
+        removeTime(scheduleSheet, getMachineRow('LM36'), startDate, time, amPm);
+      } else {
+        removeTime(scheduleSheet, getMachineRow(printer), startDate, time, amPm);
+      }
       masterSheet.setActiveSheet(currentSheet);
 
     } else { console.log('Something wrong with checkbox value') }
@@ -82,29 +86,36 @@ function activateTrigger(e){
 
 
 
-
   } else if (e.range.columnStart == 1 && e.range.columnEnd == 1 && e.range.rowStart <= 2000 && sheetName == 'Facility, PM') { // FACILITY, PM ~~~~~~~~
     //console.log('We are in row ' + rowStart);
     //console.log('We are in sheet ' + sheet.getName());
-    [printer, orderNum, travNum, printTime,owner] = currentSheet.getSheetValues(rowStart, 2, 1, 5)[0];
+    [printer, description, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 7)[0];
     
     if (e.value == 'TRUE') {
       console.log('Sending data to schedule');
 
       masterSheet.setActiveSheet(scheduleSheet);
-      var tempSheet = masterSheet.getActiveSheet();
-      var beginCell = tempSheet.getRange(getMachineRow(printer), 2, 1, 1);
-      fillTime(scheduleSheet, tempSheet.getRange(getMachineRow(printer), getNextAvailableTime(tempSheet, beginCell), 1, 1), printTime, RED);
+      if (printer == 'Metal Printers') {
+        fillTime(scheduleSheet, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
+        fillTime(scheduleSheet, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
+        fillTime(scheduleSheet, getMachineRow('LM47'), description, startDay, time, amPm, RED, notes);
+      } else {
+        fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
+      }
       masterSheet.setActiveSheet(currentSheet);
+
 
     } else if (e.value == 'FALSE') {
       console.log('Removing data from schedule');
-
       masterSheet.setActiveSheet(scheduleSheet);
-      var tempSheet = masterSheet.getActiveSheet();
-      var beginCell = tempSheet.getRange(getMachineRow(printer), 2, 1, 1);
       console.log('Removing data from schedule');
-      removeTime(scheduleSheet, tempSheet.getRange(getMachineRow(printer), getNextAvailableTime(tempSheet, beginCell)-1, 1, 1), printTime);
+      if (printer == 'Metal Printers') {
+        removeTime(scheduleSheet, getMachineRow('LM74'), startDay, time, amPm);
+        removeTime(scheduleSheet, getMachineRow('LM47'), startDay, time, amPm);
+        removeTime(scheduleSheet, getMachineRow('LM36'), startDay, time, amPm);
+      } else {
+        removeTime(scheduleSheet, getMachineRow(printer), startDay, time, amPm);
+      }
       masterSheet.setActiveSheet(currentSheet);
 
     } else { console.log('Something wrong with checkbox value') }
@@ -118,7 +129,7 @@ function activateTrigger(e){
 
 
   } else { 
-    console.log("Something weird happened. We're not in the right tabs.")
+    console.log("Not in the scheduling tabs.")
     return
   }
 }
@@ -146,11 +157,11 @@ function getNextAvailableTime(sheet, startCell) {
   var tempCell = startCell;
   var row = startCell.getRow();
   var col = startCell.getColumn();
-  var endCol = col; // This column will be white on schedule
+  var endCol = col; // This column will be green on schedule AKA will end up one column after the time slot ends.
   
   isOccupied = true;
   while (isOccupied) {
-    if (tempCell.getBackground() == '#ffffff') {
+    if (tempCell.getBackground() == GREEN) {
       isOccupied = false;
       break;
     } else {
@@ -165,62 +176,66 @@ function getNextAvailableTime(sheet, startCell) {
 
 // Fills schedule with designated time slot
 // TODO: lock columns in current sheet so can't take away time from a different printer
-function fillTime(sheet, startCell, time, statusColor) {
-  var row = startCell.getRow();
-  var startCol = startCell.getColumn();
-  var currentCol = startCol;
-  var tempCell = startCell;
+function fillTime(sheet, machineRow, travNum, startDate, time, amPm, statusColor, note) {
+  var dateRow = sheet.getSheetValues(6,2,1,56)[0];
+  var startCol = 0;
+  for (let i = 0; i < dateRow.length; i++) {
+    if (String(startDate) == String(dateRow[i])) {
+      if (amPm == 'AM') {
+        startCol = i+2;
+      } else if (amPm == 'PM') {
+        startCol = i+3;
+      } else {
+        console.log('Error with time slot.');
+        return;
+      }
+    }
+  }
   var timeBlock = Math.round(time*2);
   var endCol = startCol + timeBlock;
-  if (endCol > 29) {
+  
+  if (endCol > 57) {
     Browser.msgBox('Time slot goes past current schedule!');
     return
   }
 
-  isDone = true;
-  while (isDone) {
-    if (currentCol == endCol) {
-      tempCell = sheet.getRange(row, currentCol, 1, 1);
-      tempCell.setBorder(null, true, null, null, null, null);
-      isDone = false;
-    } else {
-      tempCell = sheet.getRange(row, currentCol, 1, 1);
-      tempCell.setBackground(statusColor);
-      currentCol += 1;
-    }
-  }
+  var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
+  slot.merge();
+  slot.setBackground(statusColor);
+  slot.setValue(travNum);
+  slot.setHorizontalAlignment('center');
+  slot.setVerticalAlignment('middle');
+  slot.setNote(note);
   return
 }
 
-function removeTime(sheet, startCell, time) {
-  var row = startCell.getRow();
-  var startCol = startCell.getColumn();
-  var currentCol = startCol;
-  var tempCell = startCell;
+// Removes time slot from schedule.
+function removeTime(sheet, machineRow, startDate, time, amPm) {
+  var dateRow = sheet.getSheetValues(6,2,1,56)[0];
+  var startCol = 0;
   var timeBlock = Math.round(time*2);
-  var endCol = startCol - timeBlock;
-  if (endCol < 1) {
+  for (let i = 0; i < dateRow.length; i++) {
+    if (String(startDate) == String(dateRow[i])) {
+      if (amPm == 'AM') {
+        startCol = i+2;
+      } else if (amPm == 'PM') {
+        startCol = i+3;
+      } else {
+        console.log('Error with time slot.');
+        return;
+      }
+    }
+  }
+
+  if (startCol < 1) {
     Browser.msgBox('Time slot goes before current schedule!');
     return
   }
-
-  isDone = true;
-  while (isDone) {
-    if (currentCol == endCol) {
-      isDone = false;
-    } else {
-      tempCell = sheet.getRange(row, currentCol, 1, 1);
-      tempCell.setBackground('#ffffff');
-      currentCol -= 1;
-    }
-  }
+  var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
+  
+  slot.setNote('');
+  slot.setBackground(GREEN);
+  slot.clearContent();
+  slot.breakApart();
   return
 }
-
-
-
-
-
-
-
-

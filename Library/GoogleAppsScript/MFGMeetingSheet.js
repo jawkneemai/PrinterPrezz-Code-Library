@@ -16,29 +16,55 @@ function activateTrigger(e){
   var currentSheet = SpreadsheetApp.getActiveSheet();
   var sheetName = currentSheet.getName();
   var rowStart = e.range.rowStart;
-  var scheduleSheet = masterSheet.getSheetByName('Schedule');
+  var scheduleSheet = masterSheet.getSheetByName('Printer Schedule');
   
 
-  if (sheetName == 'Schedule') {
+  if (sheetName == 'Printer Schedule') {
     console.log('In Schedule, do nothing');
     return
-  } else if (sheetName == 'Jobs') { // JOBS ~~~~~~~~
+
+
+
+
+// ~~~~~~~~~~~~~~~~~~~ Print Jobs ~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+  } else if (sheetName == 'Print Jobs') { // JOBS ~~~~~~~~
 
     // Data from row
-    console.log(currentSheet);
     [printer, orderNum, travNum, startDay, amPm, printTime, owner, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 8)[0];
+    var rowData = {
+      "Printer": printer,
+      "Order #": orderNum,
+      "Traveler #": travNum,
+      "Start Date (MM/DD)": startDay,
+      "AM or PM": amPm,
+      "Time (days)": printTime,
+      "Owner": owner,
+      "Notes": notes
+    };
 
-    if (e.range.columnStart == 1 && e.range.columnEnd == 1 && e.range.rowStart <= 2000) { // ACTIVATE SCHEDULE CHECKBOXES
+
+
+
+
+    if (e.range.columnStart == 1 && e.range.columnEnd == 1) { // ACTIVATE SCHEDULE CHECKBOXES
 
       if (e.value == 'TRUE') {
         console.log('Sending data to schedule');
-        fillTime(scheduleSheet, getMachineRow(printer), travNum, startDay, printTime, amPm, YELLOW, notes);
-        var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 8).protect();
-        protection.setDescription('Row locked into schedule');
-        for (let i = 0; i < protection.getEditors().length; i++) {
-          console.log(protection.getEditors()[i].getEmail());
-          protection.removeEditor(protection.getEditors()[i]);
-        } 
+        if (fillTime(scheduleSheet, getMachineRow(printer), travNum, startDay, printTime, amPm, YELLOW, notes) == 1) {
+          var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 8).protect();
+          protection.setDescription('Row locked into schedule');
+          for (let i = 0; i < protection.getEditors().length; i++) {
+            console.log(protection.getEditors()[i].getEmail());
+            protection.removeEditor(protection.getEditors()[i]);
+          }
+        } else {
+          currentSheet.getRange(e.range.rowStart, e.range.columnStart, 1, 1).uncheck();
+        }
 
       } else if (e.value == 'FALSE') {
 
@@ -55,20 +81,14 @@ function activateTrigger(e){
       return
 
 
+
+
     } else if (e.range.columnStart == 10 && e.range.columnEnd == 10) { // CLOSE PRINT CHECKBOXES
       if (e.value == 'TRUE') {
         console.log('Sending row to log.');
-        var rowRange = currentSheet.getRange(e.range.rowStart, 1, 1, 10);
-        rowRange.clearContent();
-        removeTime(scheduleSheet, getMachineRow(printer), startDay, printTime, amPm);
-        var now = new Date();
-        var log_string = now.toString() + ',' + printer + ',' + orderNum + ',' + travNum + ',' + startDay + ',' + amPm + ',' + printTime + ',' + owner + ',' + notes;
-        console.log(log_string);
-
-        var log = DocumentApp.openById('1FT9fU3cGBO0a5wG9Zhx_L1jjMm2f2995z22ucOHtZwU');
-        var body = log.getBody();
-        body.appendParagraph(log_string);
-
+        var logSheet = masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log');
+        sendEventToLog(logSheet, rowData);
+        currentSheet.getRange(e.range.rowStart, 1, 1, 10).clearContent();
       } else { console.log('Invalid checkbox value.') }
       return
     }
@@ -76,97 +96,188 @@ function activateTrigger(e){
 
 
 
-  } else if (e.range.columnStart == 1 && e.range.columnEnd == 1 && e.range.rowStart <= 2000 && sheetName == 'NCMR, ECO, DCO') { // NCMR ~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~ NCMR, ECO, DCO, DEV ~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+  } else if (sheetName == 'NCMR, ECO, DCO, DEV') { 
 
     // Data from Rows
     [itemType, itemNum, travNum, orderNum, startDate, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 10)[0];
+
+    var rowData = {
+      "Item #": itemNum,
+      "Item Type": itemType,
+      "Printer": printer,
+      "Order #": orderNum,
+      "Traveler #": travNum,
+      "Start Date (MM/DD)": startDate,
+      "AM or PM": amPm,
+      "Time (days)": time,
+      "Owner": owner,
+      "Notes": notes
+    };
     
-    if (e.value == 'TRUE') {
 
-      console.log('Sending data to schedule');
-      var description = itemType + ' ' + itemNum;
-      if (printer == 'Metal Printers') {
-        fillTime(scheduleSheet, getMachineRow('LM74'), description, startDate, time, amPm, RED, notes);
-        fillTime(scheduleSheet, getMachineRow('LM36'), description, startDate, time, amPm, RED, notes);
-        fillTime(scheduleSheet, getMachineRow('LM47'), description, startDate, time, amPm, RED, notes);
-      } else {
-        fillTime(scheduleSheet, getMachineRow(printer), description, startDate, time, amPm, RED, notes);
-      }
-      var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 10).protect();
-        protection.setDescription('Row locked into schedule');
-        for (let i = 0; i < protection.getEditors().length; i++) {
-          console.log(protection.getEditors()[i].getEmail());
-          protection.removeEditor(protection.getEditors()[i]);
-        }
 
-    } else if (e.value == 'FALSE') {
-      console.log('Removing data from schedule');
-      if (printer == 'Metal Printers') {
-        removeTime(scheduleSheet, getMachineRow('LM74'), startDate, time, amPm);
-        removeTime(scheduleSheet, getMachineRow('LM47'), startDate, time, amPm);
-        removeTime(scheduleSheet, getMachineRow('LM36'), startDate, time, amPm);
-      } else {
-        removeTime(scheduleSheet, getMachineRow(printer), startDate, time, amPm);
-      }
-      var protections = currentSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-      for (let i = 0; i < protections.length; i++) {
-        if (protections[i].getRange().getRow() == e.range.rowStart) {
-          protections[i].remove();
+
+    if (e.range.columnStart == 1 && e.range.columnEnd == 1) { // ACTIVATE BOXES
+
+      if (e.value == 'TRUE') {
+
+        console.log('Sending data to schedule');
+        var description = itemType + ' ' + itemNum;
+        if (printer == 'Metal Printers') {
+          fillTime(scheduleSheet, getMachineRow('LM74'), description, startDate, time, amPm, RED, notes);
+          fillTime(scheduleSheet, getMachineRow('LM36'), description, startDate, time, amPm, RED, notes);
+          fillTime(scheduleSheet, getMachineRow('LM47'), description, startDate, time, amPm, RED, notes);
+        } else {
+          fillTime(scheduleSheet, getMachineRow(printer), description, startDate, time, amPm, RED, notes);
         }
+        var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 10).protect();
+          protection.setDescription('Row locked into schedule');
+          for (let i = 0; i < protection.getEditors().length; i++) {
+            console.log(protection.getEditors()[i].getEmail());
+            protection.removeEditor(protection.getEditors()[i]);
+          }
+
+      } else if (e.value == 'FALSE') {
+        console.log('Removing data from schedule');
+        if (printer == 'Metal Printers') {
+          removeTime(scheduleSheet, getMachineRow('LM74'), startDate, time, amPm);
+          removeTime(scheduleSheet, getMachineRow('LM47'), startDate, time, amPm);
+          removeTime(scheduleSheet, getMachineRow('LM36'), startDate, time, amPm);
+        } else {
+          removeTime(scheduleSheet, getMachineRow(printer), startDate, time, amPm);
+        }
+        var protections = currentSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+        for (let i = 0; i < protections.length; i++) {
+          if (protections[i].getRange().getRow() == e.range.rowStart) {
+            protections[i].remove();
+          }
+        }
+      }
+
+    } else if (e.range.columnStart == 12 && e.range.columnEnd == 12) { // CLOSE PRINT CHECKBOXES
+      if (e.value == 'TRUE') {
+        console.log('Sending row to log.');
+        var logSheet = masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log');
+        sendEventToLog(logSheet, rowData);
+        currentSheet.getRange(e.range.rowStart, 1, 1, 12).clearContent();
+
       }
 
     } else { console.log('Something wrong with checkbox value') }
-
     return
 
 
 
+// ~~~~~~~~~~~~~~~~~~~~~ FACILITY, PM ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  } else if (e.range.columnStart == 1 && e.range.columnEnd == 1 && e.range.rowStart <= 2000 && sheetName == 'Facility, PM') { // FACILITY, PM ~~~~~~~~
+
+
+
+  } else if (sheetName == 'Facility, PM') { 
 
     // Data from Rows
     [printer, description, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 7)[0];
+
+    var rowData = {
+      "PM/Facility": description,
+      "Printer": printer,
+      "Start Date (MM/DD)": startDay,
+      "AM or PM": amPm,
+      "Time (days)": time,
+      "Owner": owner,
+      "Notes": notes
+    };
+  
+    if (e.range.columnStart == 1 && e.range.columnEnd == 1) {
+
+      if (e.value == 'TRUE') {
+        console.log('Sending data to schedule');
+
+        if (printer == 'Metal Printers') {
+          fillTime(scheduleSheet, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
+          fillTime(scheduleSheet, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
+          fillTime(scheduleSheet, getMachineRow('LM47'), description, startDay, time, amPm, RED, notes);
+        } else {
+          fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
+        }
+        var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 7).protect();
+          protection.setDescription('Row locked into schedule');
+          for (let i = 0; i < protection.getEditors().length; i++) {
+            console.log(protection.getEditors()[i].getEmail());
+            protection.removeEditor(protection.getEditors()[i]);
+          }
+
+
+      } else if (e.value == 'FALSE') {
+        console.log('Removing data from schedule');
+        if (printer == 'Metal Printers') {
+          removeTime(scheduleSheet, getMachineRow('LM74'), startDay, time, amPm);
+          removeTime(scheduleSheet, getMachineRow('LM47'), startDay, time, amPm);
+          removeTime(scheduleSheet, getMachineRow('LM36'), startDay, time, amPm);
+        } else {
+          removeTime(scheduleSheet, getMachineRow(printer), startDay, time, amPm);
+        }
+        var protections = currentSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+        for (let i = 0; i < protections.length; i++) {
+          if (protections[i].getRange().getRow() == e.range.rowStart) {
+            protections[i].remove();
+          }
+        }
+      }
+
+
+
+    } else if (e.range.columnStart == 9 && e.range.columnEnd == 9) { // CLOSE PRINT CHECKBOXES
+      if (e.value == 'TRUE') {
+        console.log('Sending row to log.');
+        var logSheet = masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log');
+        sendEventToLog(logSheet, rowData);
+        currentSheet.getRange(e.range.rowStart, 1, 1, 9).clearContent();
+
+      } else { console.log('Invalid checkbox value.') }
+    }
+    return
+
     
-    if (e.value == 'TRUE') {
-      console.log('Sending data to schedule');
-
-      if (printer == 'Metal Printers') {
-        fillTime(scheduleSheet, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
-        fillTime(scheduleSheet, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
-        fillTime(scheduleSheet, getMachineRow('LM47'), description, startDay, time, amPm, RED, notes);
-      } else {
-        fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
-      }
-      var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 7).protect();
-        protection.setDescription('Row locked into schedule');
-        for (let i = 0; i < protection.getEditors().length; i++) {
-          console.log(protection.getEditors()[i].getEmail());
-          protection.removeEditor(protection.getEditors()[i]);
-        }
 
 
-    } else if (e.value == 'FALSE') {
-      console.log('Removing data from schedule');
-      if (printer == 'Metal Printers') {
-        removeTime(scheduleSheet, getMachineRow('LM74'), startDay, time, amPm);
-        removeTime(scheduleSheet, getMachineRow('LM47'), startDay, time, amPm);
-        removeTime(scheduleSheet, getMachineRow('LM36'), startDay, time, amPm);
-      } else {
-        removeTime(scheduleSheet, getMachineRow(printer), startDay, time, amPm);
-      }
-      var protections = currentSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-      for (let i = 0; i < protections.length; i++) {
-        if (protections[i].getRange().getRow() == e.range.rowStart) {
-          protections[i].remove();
-        }
-      }
 
-    } else { console.log('Something wrong with checkbox value') }
+// ~~~~~~~~~~~~~~~~~~~ Open Business ~~~~~~~~~~~~~~~~~~~~~
 
+
+
+
+  } else if (sheetName == 'Open Business') { 
+
+    if (e.range.columnStart == 3 && e.range.columnEnd == 3) {
+
+      [description, owners] = currentSheet.getSheetValues(rowStart, 1, 1, 2)[0];
+      var rowData = {
+        "Item Description": description,
+        "Owner(s)": owners
+      };
+      if (e.value == 'TRUE') {
+        console.log('Sending row to log.');
+        var logSheet = masterSheet.getSheetByName('Open Business Log');
+        sendOpenBusinessToLog(logSheet, rowData);
+        currentSheet.getRange(e.range.rowStart, 1, 1, 3).clearContent();
+      } else { console.log('Invalid checkbox value.') }
+
+    }
     return
 
 
-  } else { 
+
+
+
+
+
+  } else {
     console.log("Not in the scheduling tabs.")
     return
   }
@@ -238,13 +349,18 @@ function fillTime(sheet, machineRow, travNum, startDate, time, amPm, statusColor
   }
 
   var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
-  slot.merge();
-  slot.setBackground(statusColor);
-  slot.setValue(travNum);
-  slot.setHorizontalAlignment('center');
-  slot.setVerticalAlignment('middle');
-  slot.setNote(note);
-  return
+  if (slot.getBackground() == GREEN) {
+    slot.merge();
+    slot.setBackground(statusColor);
+    slot.setValue(travNum);
+    slot.setHorizontalAlignment('center');
+    slot.setVerticalAlignment('middle');
+    slot.setNote(note);
+    return 1;
+  } else {
+    Browser.msgBox('Time Conflict!');
+    return 0;
+  }
 }
 
 // Removes time slot from schedule.
@@ -270,7 +386,6 @@ function removeTime(sheet, machineRow, startDate, time, amPm) {
     return
   }
   var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
-  
   slot.setNote('');
   slot.setBackground(GREEN);
   slot.clearContent();
@@ -293,8 +408,18 @@ function highlightToday() {
   scheduleSheet.getRange(12,2,2,732).setBackground('#efefef');
   scheduleSheet.getRange(14,2,5,732).setBackground('#ffffff');
   // Machine rows
-  scheduleSheet.getRange(7,2,5,732);
-  // for loop loop through two columns at a time(1 day at a time) and set borders appropriately
+  var machineRows = scheduleSheet.getRange(7,2,5,732);
+
+// Uncomment when need to reformat weekends
+/* 
+  for (let i = 1; i < 366; i++) {
+    if (scheduleSheet.getRange(5, (2*i), 1, 1).getValue().getDay() == 0 || scheduleSheet.getRange(5, (2*i), 1, 1).getValue().getDay() == 6) {
+      var tempRange = scheduleSheet.getRange(7,(2*i), 5, 2);
+      tempRange.setBorder(true, true, true, true, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+      tempRange.setBorder(null, null, null, null, true, true, '#000000', SpreadsheetApp.BorderStyle.DOTTED);
+    }
+  }
+*/
 
   // Highlight Today
   var dateRow = scheduleSheet.getSheetValues(6,2,1,730)[0];
@@ -316,3 +441,48 @@ function highlightToday() {
   scheduleSheet.getRange(1, todayIndex, 1, 1).setValue('Today');
   scheduleSheet.getRange(12, todayIndex, 7, 2).setBackground('#d9b8df');
 }
+
+// Sends an item in Print Jobs or NCMR, ECO, DCO, DEV to the Event Log tab
+function sendEventToLog(logSheet, rowData) {
+  var categories = ['Time Stamp', 'Traveler #', 'Order #', 'Item Type', 'Item #', 'PM/Facility', 'Start Date (MM/DD)', 'AM or PM', 'Time (days)', 'Owner', 'Printer', 'Notes'];
+  var now = new Date();
+  var timeStamp = now.toString();
+  var emptyRow = getFirstEmptyRowByColumnArray(logSheet);
+  logSheet.getRange(emptyRow, 1, 1, 1).setValue(timeStamp);
+  for (let i = 1; i < categories.length; i++) {
+    if (categories[i] in rowData) {
+      logSheet.getRange(emptyRow, i+1, 1, 1).setValue(rowData[categories[i]]);
+    } else {
+      logSheet.getRange(emptyRow, i+1, 1, 1).setValue('N/A');
+    }
+  }
+}
+
+// Sends an item in Open Business tab to the Open Business Log
+function sendOpenBusinessToLog(logSheet, rowData) {
+  var categories = ['Item Description', 'Owner(s)'];
+  var now = new Date();
+  var timeStamp = now.toString();
+  var emptyRow = getFirstEmptyRowByColumnArray(logSheet);
+  logSheet.getRange(emptyRow, 1, 1, 1).setValue(timeStamp);
+  for (let i = 0; i < categories.length; i++) {
+    if (categories[i] in rowData) {
+      console.log(rowData[categories[i]]);
+      logSheet.getRange(emptyRow, i+2, 1, 1).setValue(rowData[categories[i]]);
+    } else {
+      logSheet.getRange(emptyRow, i+2, 1, 1).setValue('N/A');
+    }
+  }
+}
+
+// Gets the first empty row on a given sheet.
+function getFirstEmptyRowByColumnArray(sheet) {
+  var column = sheet.getRange('A:A');
+  var values = column.getValues(); // get all data in one call
+  var ct = 0;
+  while ( values[ct] && values[ct][0] != "" ) {
+    ct++;
+  }
+  return (ct+1);
+}
+

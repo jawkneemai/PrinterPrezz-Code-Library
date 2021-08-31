@@ -1,9 +1,3 @@
-/*
-function testEmail() {
-  MailApp.sendEmail('catherine.mai@printerprezz.com', 'test', 'triggered');
-}
-*/
-
 // Listens to edits on the MFG Meeting Schedule for edits in the Jobs, NCMR/ECO/DCO, Facility/PM tabs for activating items onto the schedule or closing the items out into the log. Sends each item to a google doc for the log.
 
 // Global Variables
@@ -11,7 +5,7 @@ const GREEN = '#b6d7a8';
 const YELLOW = '#ffe599';
 const RED = '#ea9999';
 
-// Sheets: ['3 Month Schedule', 'Print Jobs', 'NCMR, ECO, DCO, DEV', 'PM', 'Facility', 'Open Business', 'Printer Schedule', 'Print, NCMR, ECO, DCO, DEV Log', 'Print Job Logs', 'NCMR, ECO, DCO, DEV Logs', 'EHF Logs', 'Facility Logs', 'Open Business Log', 'Drop Down Lists', 'Notes']
+// Sheets: ['3 Month Schedule', '1: Print Jobs', '2: NCMR, ECO, DCO, DEV', '3: PM', '4: Facility', '5: Open Business', 'Printer Schedule', 'Master Log', '1: Print Job Logs', '2: NCMR, ECO, DCO, DEV Logs', '3: EHF Logs', '4: Facility Logs', '5: Open Business Log', 'Drop Down Lists', 'Notes']
 
 function activateTrigger(e){
   var masterSheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -21,7 +15,7 @@ function activateTrigger(e){
   var scheduleSheet = masterSheet.getSheetByName('3 Month Schedule');
   var scheduleLog = masterSheet.getSheetByName('Printer Schedule');
   
-  if (sheetName === 'Printer Schedule' || sheetName === '3 Month Schedule' || sheetName === 'Open Business Log' || sheetName === 'Drop Down Lists' || sheetName === 'Print Job Log' || sheetName === 'NCMR, ECO, DCO, DEV Log' || sheetName === 'EHF Log' || sheetName === 'Facility Log' || sheetName === 'Notes') {
+  if (sheetName === 'Printer Schedule' || sheetName === '3 Month Schedule' || sheetName === '5: Open Business Log' || sheetName === 'Drop Down Lists' || sheetName === '1: Print Job Log' || sheetName === '2: NCMR, ECO, DCO, DEV Log' || sheetName === '4: EHF Log' || sheetName === '3: Facility Log' || sheetName === 'Notes') {
     console.log(sheetName);
     console.log('In a sheet where nothing is supposed to be edited.');
     return
@@ -35,10 +29,10 @@ function activateTrigger(e){
 
 
 
-  } else if (sheetName == 'Print Jobs') { // JOBS ~~~~~~~~
+  } else if (sheetName == '1: Print Jobs') { // JOBS ~~~~~~~~
 
     // Data from row
-    [printer, orderNum, travNum, startDay, amPm, printTime, owner, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 8)[0];
+    [printer, orderNum, travNum, startDay, amPm, printTime, owner, notes, totalBuildTime, totalBuildHeight] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
     var rowData = {
       "Printer": printer,
       "Order #": orderNum,
@@ -47,7 +41,9 @@ function activateTrigger(e){
       "AM or PM": amPm,
       "Time (days)": printTime,
       "Owner": owner,
-      "Notes": notes
+      "Notes": notes,
+      "Total Build Time (hours)": totalBuildTime,
+      "Total Build Height (mm)": totalBuildHeight
     };
 
 
@@ -75,12 +71,12 @@ function activateTrigger(e){
 
 
 
-    } else if (e.range.columnStart == 10 && e.range.columnEnd == 10) { // CLOSE PRINT CHECKBOXES
+    } else if (e.range.columnStart == currentSheet.getLastColumn() && e.range.columnEnd == currentSheet.getLastColumn()) { // CLOSE PRINT CHECKBOXES
       if (e.value == 'TRUE') {
         console.log('Sending row to log.');
-        sendEventToLog(currentSheet, masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log'), masterSheet.getSheetByName('Print Job Log'), rowData);
+        sendEventToLog(currentSheet, masterSheet.getSheetByName('Master Log'), masterSheet.getSheetByName('1: Print Job Log'), rowData);
         fillTime(scheduleLog, getMachineRow(printer), travNum, startDay, printTime, amPm, YELLOW, notes);
-        currentSheet.getRange(e.range.rowStart, 1, 1, 10).clearContent();
+        currentSheet.getRange(e.range.rowStart, 1, 1, currentSheet.getLastColumn()).clearContent();
       } else { console.log('Invalid checkbox value.') }
       return
 
@@ -88,7 +84,7 @@ function activateTrigger(e){
 
 
 
-    } else if (e.range.rowStart > 1 && 1 < e.range.columnStart < 10) {
+    } else if (e.range.rowStart > 1 && 2 < e.range.columnStart < currentSheet.getLastColumn()) { // UPDATE TIMESLOT IF VALUE IS CHANGED AND ACTIVE
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
@@ -107,15 +103,16 @@ function activateTrigger(e){
 
 
 
-  } else if (sheetName == 'NCMR, ECO, DCO, DEV') { 
+  } else if (sheetName == '2: NCMR, ECO, DCO, DEV') { 
 
     // Data from Rows
-    [itemType, itemNum, travNum, orderNum, startDay, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 10)[0];
+    [itemType, itemNum, vov, travNum, orderNum, startDay, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 2, 1, (currentSheet.getLastColumn()-3))[0];
 
     var description = itemType + ' ' + itemNum;
     var rowData = {
       "Item #": itemNum,
       "Item Type": itemType,
+      'Verification vs. Validation': vov,
       "Printer": printer,
       "Order #": orderNum,
       "Traveler #": travNum,
@@ -126,7 +123,7 @@ function activateTrigger(e){
       "Notes": notes
     };
     
-
+    console.log(rowData);
 
 
 
@@ -140,7 +137,6 @@ function activateTrigger(e){
           fillTime(scheduleSheet, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
           fillTime(scheduleSheet, getMachineRow('LM47'), description, startDay, time, amPm, RED, notes);
         } else {
-          console.log(description);
           fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
         }
 
@@ -157,11 +153,11 @@ function activateTrigger(e){
 
       }
 
-    } else if (e.range.columnStart == 12 && e.range.columnEnd == 12) { // CLOSE PRINT CHECKBOXES
+    } else if (e.range.columnStart == currentSheet.getLastColumn() && e.range.columnEnd == currentSheet.getLastColumn()) { // CLOSE PRINT CHECKBOXES
       if (e.value == 'TRUE') {
         console.log('Sending row to log.');
-        var logSheet = masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log');
-        sendEventToLog(logSheet, rowData);
+        var logSheet = masterSheet.getSheetByName('Master Log');
+        sendEventToLog(currentSheet, masterSheet.getSheetByName('Master Log'), masterSheet.getSheetByName('2: NCMR, ECO, DCO, DEV Log'), rowData);
         if (printer == 'Metal Printers') {
           fillTime(scheduleLog, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
           fillTime(scheduleLog, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
@@ -171,23 +167,47 @@ function activateTrigger(e){
         }
         currentSheet.getRange(e.range.rowStart, 1, 1, 12).clearContent();
 
+
       }
 
 
 
 
 
-    } else if (e.range.rowStart > 1 && 1 < e.range.columnStart < 12) {
+    } else if (e.range.rowStart > 1 && 2 < e.range.columnStart < currentSheet.getLastColumn()) { // UPDATE TIME SLOT IF VALUE IS CHANGED AND ACTIVE
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
         rowData[changedCat] = e.oldValue;
-        if (printer == 'Metal Printers') { // MAKE EDITING ALL PRINTERS WORK v
-          removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
-          fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
-        } else {
-          removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
-          fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
+        
+        
+        if (changedCat == 'Printer') { // IF CHANGING PRINTER TO AND FROM MULTIPLE AFFECTED PRINTERS
+          if (printer == 'Metal Printers') { // 
+            removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            fillTime(scheduleSheet, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
+            fillTime(scheduleSheet, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
+            fillTime(scheduleSheet, getMachineRow('LM47'), description, startDay, time, amPm, RED, notes);
+          } else if (e.oldValue == 'Metal Printers') {
+            removeTime(scheduleSheet, getMachineRow('LM74'), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            removeTime(scheduleSheet, getMachineRow('LM36'), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            removeTime(scheduleSheet, getMachineRow('LM47'), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
+          } else {
+            removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
+          } 
+        } else { 
+          if (printer == 'Metal Printers') {
+            removeTime(scheduleSheet, getMachineRow('LM74'), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            removeTime(scheduleSheet, getMachineRow('LM36'), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            removeTime(scheduleSheet, getMachineRow('LM47'), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            fillTime(scheduleSheet, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
+            fillTime(scheduleSheet, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
+            fillTime(scheduleSheet, getMachineRow('LM47'), description, startDay, time, amPm, RED, notes);
+          } else {
+            removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
+            fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
+          }
         }
       } 
       return;
@@ -195,15 +215,15 @@ function activateTrigger(e){
     
 
 
-// ~~~~~~~~~~~~~~~~~~~~~ FACILITY, PM ~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~ FACILITY ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
 
-  } else if (sheetName == 'Facility') { 
+  } else if (sheetName == '3: Facility') { 
 
     // Data from Rows
-    [printer, description, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 7)[0];
+    [printer, description, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 2, 1, (currentSheet.getLastColumn()-3))[0];
 
     var rowData = {
       "Facility": description,
@@ -227,12 +247,7 @@ function activateTrigger(e){
         } else {
           fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
         }
-        var protection = currentSheet.getRange(e.range.rowStart, (e.range.columnStart+1), 1, 7).protect();
-          protection.setDescription('Row locked into schedule');
-          for (let i = 0; i < protection.getEditors().length; i++) {
-            console.log(protection.getEditors()[i].getEmail());
-            protection.removeEditor(protection.getEditors()[i]);
-          }
+        
 
 
       } else if (e.value == 'FALSE') {
@@ -244,21 +259,17 @@ function activateTrigger(e){
         } else {
           removeTime(scheduleSheet, getMachineRow(printer), startDay, time, amPm);
         }
-        var protections = currentSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-        for (let i = 0; i < protections.length; i++) {
-          if (protections[i].getRange().getRow() == e.range.rowStart) {
-            protections[i].remove();
-          }
-        }
       }
 
 
 
-    } else if (e.range.columnStart == 9 && e.range.columnEnd == 9) { // CLOSE PRINT CHECKBOXES
+
+
+    } else if (e.range.columnStart == currentSheet.getLastColumn() && e.range.columnEnd == currentSheet.getLastColumn()) { // CLOSE PRINT CHECKBOXES
       if (e.value == 'TRUE') {
         console.log('Sending row to log.');
-        var logSheet = masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log');
-        sendEventToLog(logSheet, rowData);
+        var logSheet = masterSheet.getSheetByName('Master Log');
+        sendEventToLog(currentSheet, masterSheet.getSheetByName('Master Log'), masterSheet.getSheetByName('3: Facility Log'), rowData);
         if (printer == 'Metal Printers') {
           fillTime(scheduleLog, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
           fillTime(scheduleLog, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
@@ -274,7 +285,7 @@ function activateTrigger(e){
 
 
 
-    } else if (e.range.rowStart > 1 && 1 < e.range.columnStart < 9) { // EDITING MIDDLE AREA
+    } else if (e.range.rowStart > 1 && 2 < e.range.columnStart < currentSheet.getLastColumn()) { // EDITING MIDDLE AREA
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
@@ -291,7 +302,7 @@ function activateTrigger(e){
 
 
 
-// ~~~~~~~~~~~~~~~~~~~ Open Business ~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~ PM ~~~~~~~~~~~~~~~~~~~~~
 
 
 
@@ -299,7 +310,7 @@ function activateTrigger(e){
   } else if (sheetName == 'PM') { 
 
     // Data from Rows
-    [printer, description, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 2, 1, 7)[0];
+    [printer, description, owner, startDay, amPm, time, notes, pmType, cleaning, inspectionChecks, replacementOfParts, repairRequired, calibration, adjustmentsRequired, upgrades, otherTasks, tasks, frequency, reasonObservedIssue, fseWorking] = currentSheet.getSheetValues(rowStart, 2, 1, (currentSheet.getLastColumn()-3))[0];
 
     var rowData = {
       "PM": description,
@@ -308,7 +319,20 @@ function activateTrigger(e){
       "AM or PM": amPm,
       "Time (days)": time,
       "Owner": owner,
-      "Notes": notes
+      "Notes": notes,
+      "PM Type": pmType,
+      "Cleaning (Y/N)": cleaning,
+      "Inspection Checks (Y/N)": inspectionChecks,
+      "Replacement of Parts (Y/N)": replacementOfParts,
+      "Repair Required (Y/N)": repairRequired,
+      "Calibration (Y/N)": calibration,
+      "Adjustments Required (Y/N)": adjustmentsRequired,
+      "Upgrades (Y/N)": upgrades,
+      "Other Tasks": otherTasks,
+      "Tasks": tasks,
+      "Frequency": frequency,
+      "Reason/Observed Issue": reasonObservedIssue,
+      "FSE Working": fseWorking
     };
   
     if (e.range.columnStart == 1 && e.range.columnEnd == 1) {
@@ -340,11 +364,14 @@ function activateTrigger(e){
 
 
 
-    } else if (e.range.columnStart == 9 && e.range.columnEnd == 9) { // CLOSE PRINT CHECKBOXES
+    } else if (e.range.columnStart == currentSheet.getLastColumn() && e.range.columnEnd == currentSheet.getLastColumn()) { // CLOSE PRINT CHECKBOXES
+
+      //console.log(rowData.every(element => element === null));
       if (e.value == 'TRUE') {
         console.log('Sending row to log.');
-        var logSheet = masterSheet.getSheetByName('Print, NCMR, ECO, DCO, DEV Log');
-        sendEventToLog(logSheet, rowData);
+
+        sendEventToLog(currentSheet, masterSheet.getSheetByName('Master Log'), masterSheet.getSheetByName('4: EHF Log'), rowData);
+
         if (printer == 'Metal Printers') {
           fillTime(scheduleLog, getMachineRow('LM74'), description, startDay, time, amPm, RED, notes);
           fillTime(scheduleLog, getMachineRow('LM36'), description, startDay, time, amPm, RED, notes);
@@ -352,7 +379,7 @@ function activateTrigger(e){
         } else {
           fillTime(scheduleLog, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
         }
-        currentSheet.getRange(e.range.rowStart, 1, 1, 9).clearContent();
+        currentSheet.getRange(e.range.rowStart, 1, 1, 22).clearContent();
 
       } else { console.log('Invalid checkbox value.') }
 
@@ -360,7 +387,7 @@ function activateTrigger(e){
 
 
 
-    } else if (e.range.rowStart > 1 && 1 < e.range.columnStart < 9) { // EDITING MIDDLE AREA
+    } else if (e.range.rowStart > 1 && 2 < e.range.columnStart < 10 && 2 < e.range.columnEnd < 10) { // EDITING MIDDLE AREA
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
@@ -384,7 +411,7 @@ function activateTrigger(e){
 
   } else if (sheetName == 'Open Business') { 
 
-    if (e.range.columnStart == 3 && e.range.columnEnd == 3) {
+    if (e.range.columnStart == currentSheet.getLastColumn() && e.range.columnEnd == currentSheet.getLastColumn()) { // CLOSING OPEN BUSINESS ITEM TO LOG
 
       [description, owners] = currentSheet.getSheetValues(rowStart, 1, 1, 2)[0];
       var rowData = {
@@ -393,11 +420,10 @@ function activateTrigger(e){
       };
       if (e.value == 'TRUE') {
         console.log('Sending row to log.');
-        var logSheet = masterSheet.getSheetByName('Open Business Log');
+        var logSheet = masterSheet.getSheetByName('5: Open Business Log');
         sendOpenBusinessToLog(logSheet, rowData);
-        currentSheet.getRange(e.range.rowStart, 1, 1, 3).clearContent();
+        currentSheet.getRange(e.range.rowStart, 1, 1, currentSheet.getLastColumn()).clearContent();
       } else { console.log('Invalid checkbox value.') }
-
     }
     return
 
@@ -408,7 +434,7 @@ function activateTrigger(e){
 
 
   } else {
-    console.log("Not in the scheduling tabs.")
+    console.log("In a weird tab!")
     return
   }
 }
@@ -471,7 +497,7 @@ function fillTime(sheet, machineRow, display, startDate, time, amPm, statusColor
     console.log('This event doesnt need to go on the schedule.');
     return;
   }
-  var dateRow = sheet.getSheetValues(6,2,1,sheet.getLastColumn()-1)[0];
+  var dateRow = sheet.getSheetValues(6,2,1,sheet.getLastColumn()-2)[0];
   var startCol = 0;
   
   for (let i = 0; i < dateRow.length; i++) {
@@ -484,15 +510,12 @@ function fillTime(sheet, machineRow, display, startDate, time, amPm, statusColor
         console.log('Error with time slot.');
         return;
       }
-      console.log(dateRow[i]);
     }
   }
-  console.log(startDate);
-  console.log(startCol);
   var timeBlock = Math.round(time*2);
   var endCol = startCol + timeBlock;
   
-  if (endCol > 57) {
+  if (endCol > 731) {
     Browser.msgBox('Time slot goes past current schedule!');
     return
   }
@@ -587,7 +610,6 @@ function conflictResolve(slot, travNum, statusColor, note) {
 
 
   for (let i = 0; i < conflictCells.length; i++) {
-    console.log(conflictCells[i].getA1Notation());
     var tempValue = conflictCells[i].getValue();
     var tempCol = conflictCells[i].getLastColumn() - conflictCells[i].getColumn()+1; 
     conflictCells[i].breakApart();
@@ -622,7 +644,7 @@ function removeTime(sheet, machineRow, startDate, time, amPm) {
   if (machineRow == 0) {
     return;
   }
-  var dateRow = sheet.getSheetValues(6,2,1,56)[0];
+  var dateRow = sheet.getSheetValues(6,2,1,(sheet.getLastColumn()-2))[0];
   var startCol = 0;
   var timeBlock = Math.round(time*2);
   for (let i = 0; i < dateRow.length; i++) {
@@ -689,8 +711,8 @@ function highlightToday() {
 */
 
   // Highlight Today
-  var dateRow = scheduleSheet.getSheetValues(6,2,1,730)[0];
-  var dateRow2 = shortSheet.getSheetValues(6,2,1,124)[0];
+  var dateRow = scheduleSheet.getSheetValues(6,2,1,(scheduleSheet.getLastColumn()-2))[0];
+  var dateRow2 = shortSheet.getSheetValues(6,2,1,(shortSheet.getLastColumn()-2))[0];
   var today = new Date();
   today.setHours(0,0,0,0);
   
@@ -729,30 +751,26 @@ function sendEventToLog(currentSheet, masterLogSheet, subLogSheet, rowData) {
   var sheetCategories = currentSheet.getRange(1, 1, 1, currentSheet.getLastColumn()).getValues()[0];
   sheetCategories.pop();
   sheetCategories.shift();
+  console.log(rowData);
+
   var now = new Date();
   var timeStamp = now.toString();
-  console.log(sheetCategories);
-  if (currentSheet.getName() == 'Print Jobs') {
+
+  if (currentSheet.getName() == '1: Print Jobs' || currentSheet.getName() == '2: NCMR, ECO, DCO, DEV' || currentSheet.getName() == '3: Facility' || currentSheet.getName() == '4: PM') {
     var emptyRow = getFirstEmptyRowByColumnArray(subLogSheet);
     subLogSheet.getRange(emptyRow, 1, 1, 1).setValue(timeStamp);
-    for (let i = 1; i < sheetCategories.length; i++) {
+    for (let i = 0; i < sheetCategories.length; i++) {
       if (sheetCategories[i] in rowData) {
         subLogSheet.getRange(emptyRow, i+2, 1, 1).setValue(rowData[sheetCategories[i]]);
       } else {
         subLogSheet.getRange(emptyRow, i+2, 1, 1).setValue('N/A');
       }
     }
-  } else if (currentSheet.getName() == 'NCMR, ECO, DCO, DEV') {
-
-  } else if (currentSheet.getName() == 'PM') {
-
-  } else if (currentSheet.getName() == 'Facility') {
-
   } else {
     console.log('Error, try to send an event from an invalid sheet.');
     return;
   }
-  var masterCategories = ['Time Stamp', 'Traveler #', 'Order #', 'Item Type', 'Item #', 'PM/Facility', 'Start Date (MM/DD)', 'AM or PM', 'Time (days)', 'Owner', 'Printer', 'Notes'];
+  var masterCategories = masterLogSheet.getRange(1,1,1,masterLogSheet.getLastColumn()).getValues()[0];
   var emptyRow = getFirstEmptyRowByColumnArray(masterLogSheet);
   masterLogSheet.getRange(emptyRow, 1, 1, 1).setValue(timeStamp);
   for (let i = 1; i < masterCategories.length; i++) {

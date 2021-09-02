@@ -42,7 +42,7 @@ function activateTrigger(e){
       "AM or PM": amPm,
       "Time (days)": printTime,
       "Owner": owner,
-      "Notes": notes,
+      "Description": notes,
       "Total Build Time (hours)": totalBuildTime,
       "Total Build Height (mm)": totalBuildHeight
     };
@@ -122,7 +122,7 @@ function activateTrigger(e){
       "AM or PM": amPm,
       "Time (days)": time,
       "Owner": owner,
-      "Notes": notes
+      "Description": notes
     };
     
 
@@ -233,7 +233,7 @@ function activateTrigger(e){
       "AM or PM": amPm,
       "Time (days)": time,
       "Owner": owner,
-      "Notes": notes
+      "Description": notes
     };
   
     if (e.range.columnStart == 1 && e.range.columnEnd == 1) {
@@ -313,9 +313,9 @@ function activateTrigger(e){
   } else if (sheetName == '4: PM') { 
 
     // Data from Rows
-    [printer, description, vov, owner, startDay, amPm, time, notes, pmType, cleaning, inspectionChecks, replacementOfParts, repairRequired, calibration, adjustmentsRequired, upgrades, otherTasks, tasks, frequency, reasonObservedIssue, fseWorking] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
+    [printer, description, vov, owner, startDay, amPm, time, notes, pmType, verification, cleaning, inspectionChecks, replacementOfParts, repairRequired, calibration, adjustmentsRequired, upgrades, otherTasks, tasks, frequency, reasonObservedIssue, fseWorking] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
 
-    console.log( [printer, description, vov, owner, startDay, amPm, time, notes, pmType, cleaning, inspectionChecks, replacementOfParts, repairRequired, calibration, adjustmentsRequired, upgrades, otherTasks, tasks, frequency, reasonObservedIssue, fseWorking]);
+    console.log( [printer, description, vov, owner, startDay, amPm, time, notes, pmType, verification, cleaning, inspectionChecks, replacementOfParts, repairRequired, calibration, adjustmentsRequired, upgrades, otherTasks, tasks, frequency, reasonObservedIssue, fseWorking]);
     var rowData = {
       "PM": description,
       'Verification vs. Validation': vov,
@@ -324,8 +324,9 @@ function activateTrigger(e){
       "AM or PM": amPm,
       "Time (days)": time,
       "Owner": owner,
-      "Notes": notes,
+      "Description": notes,
       "PM Type": pmType,
+      "Verification (Y/N)": verification, 
       "Cleaning (Y/N)": cleaning,
       "Inspection Checks (Y/N)": inspectionChecks,
       "Replacement of Parts (Y/N)": replacementOfParts,
@@ -419,7 +420,7 @@ function activateTrigger(e){
 
     if (e.range.columnStart == currentSheet.getLastColumn() && e.range.columnEnd == currentSheet.getLastColumn()) { // CLOSING OPEN BUSINESS ITEM TO LOG
 
-      [description, owners] = currentSheet.getSheetValues(rowStart, 1, 1, 2)[0];
+      [description, owners] = currentSheet.getSheetValues(rowStart, 2, 1, 2)[0];
       var rowData = {
         "Item Description": description,
         "Owner(s)": owners
@@ -436,6 +437,7 @@ function activateTrigger(e){
 
 
 // ~~~~~~~~~~~~~~~~~~~~ Master Log ~~~~~~~~~~~~~~~~~~~~~~
+
 
 
 
@@ -594,7 +596,7 @@ function fillTime(sheet, machineRow, display, startDate, time, amPm, statusColor
       ui.ButtonSet.YES_NO);
       
     if (conflict == ui.Button.YES) {
-      conflictResolve(slot, display, statusColor, note);
+      conflictResolve(slot, display, statusColor, note, sheet);
       return 1;
     } else {
       return 0;
@@ -658,9 +660,9 @@ function formatBorderRemove(slot) {
 */
 
 // Resolves Time Conflict
-function conflictResolve(slot, travNum, statusColor, note) {
+function conflictResolve(slot, travNum, statusColor, note, sheet) {
   var conflictCells = slot.getMergedRanges();
-  var sheet = SpreadsheetApp.getActiveSheet();
+
 
 
   for (let i = 0; i < conflictCells.length; i++) {
@@ -669,15 +671,22 @@ function conflictResolve(slot, travNum, statusColor, note) {
     conflictCells[i].breakApart();
     conflictCells[i].getCell(1, tempCol).setValue(tempValue);
 
-/* FOR SOME REASON, GOOGLE SHEETS CANNOT FIND SHEET. COMMON ERROR WHEN DEALING WITH TOO MUCH DATA?
     if (slot.getColumn() > conflictCells[i].getColumn()) {
-      var temp = sheet.getRange(conflictCells[i].getRow(), conflictCells[i].getColumn(), 1, (slot.getColumn()-1));
-      temp.merge();
-    } else {
-      var temp = sheet.getRange(conflictCells[i].getRow(), conflictCells[i].getColumn(), 1, (slot.getLastColumn()+1));
-      temp.merge();
+      if (slot.getColumn()-conflictCells[i].getColumn() == 0) {
+        conflictCells[i].clear();
+      } else {
+        var temp = sheet.getRange(conflictCells[i].getRow(), conflictCells[i].getColumn(), 1, slot.getColumn()-conflictCells[i].getColumn());
+        temp.merge();
+      }
+    } else if (slot.getColumn() < conflictCells[i].getColumn()) {
+      if (conflictCells[i].getLastColumn()-slot.getLastColumn() == 0) {
+        conflictCells[i].clear();
+      } else {
+        var temp = sheet.getRange(conflictCells[i].getRow(), conflictCells[i].getColumn(), 1, conflictCells[i].getLastColumn()-slot.getLastColumn());
+        temp.merge();
+      }
     }
-   */ 
+  
   }
 
 

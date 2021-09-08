@@ -98,6 +98,8 @@ def parse_log(file_path):
 	except:
 		sys.exit('No File Selected')
 
+	print(file_path)
+
 	# Parse
 	data_fields = ['L', 'D.Tm', 'B', 'F', 'FL', 'FR', 
 	'CoaterSp', 'BlowerF', 'RPMBlowerSp', 'setp', 'real', 'Tlaser', 
@@ -106,15 +108,18 @@ def parse_log(file_path):
 	# Some manual tinkering to deal with different data field formats from earlier printer logs. (Mainly "RPMBlowerSp was ModBlowerSp before and didn't exist before that. O2 data has more fields in v2 and v3.")
 	data_fields_cutoff1 = dt.strptime('10/11/2020', '%m/%d/%Y') # After this date: logs v3
 	data_fields_cutoff2 = dt.strptime('2/7/2020', '%m/%d/%Y') # Before this date: logs v1. logs v2 in between.
+	data_fields_cutoff3 = dt.strptime('9/2/2021', '%m/%d/%Y') # Logs v4, Lost Tbuild parameter
 	corrector = 0 # Corrector for earlier printer logs that had a different format.
 	log_date = get_date_from_log(file_path)
-	if data_fields_cutoff2 < log_date < data_fields_cutoff1:
-		data_fields[8] = 'ModBlowerSp'
-	elif log_date < data_fields_cutoff2:
+	if log_date < data_fields_cutoff2:
 		data_fields.remove('RPMBlowerSp')
 		data_fields.remove('setp')
 		data_fields.remove('real')
 		corrector = 3
+	elif data_fields_cutoff2 < log_date < data_fields_cutoff1:
+		data_fields[8] = 'ModBlowerSp'
+	elif log_date > data_fields_cutoff3:
+		data_fields.remove('Tbuild')
 
 	rows = []
 	final_rows = []
@@ -168,7 +173,10 @@ def parse_log(file_path):
 			temp_row.append(temp_split[28]) # O2 %1
 		else:
 			corrector += 4
-		temp_row.append(remove_colon(temp_split[30-corrector])) # Tbuild
+		if log_date < data_fields_cutoff3:
+			temp_row.append(remove_colon(temp_split[30-corrector])) # Tbuild
+		else:
+			corrector += 1
 		temp_row.append(remove_colon(temp_split[31-corrector])) # Par
 		temp_row.append(remove_colon(temp_split[32-corrector])) # Pca
 		temp_row.append(remove_colon(temp_split[33-corrector])) # dPfil
@@ -280,18 +288,17 @@ def plot_log_xy(file_path, x_field, y_field, title='', x_label='', y_label='', s
 	if save == True:
 		pyplot.savefig(os.getcwd() + '\\Data\\Plots\\' + ancillary.get_file_name(file_path))
 
-	
 	pyplot.show(block=False)
 	return
 
 def main():
-	try:
-		root = tkint.Tk()
-		root.withdraw()
-		file_path = filedialog.askopenfilename()
-		parse_log(file_path)
-	except:
-		print('No File Selected.')
+	#try:
+	root = tkint.Tk()
+	root.withdraw()
+	file_path = filedialog.askopenfilename()
+	parse_log(file_path)
+	#except:
+		#print('No File Selected.')
 
 if __name__ == '__main__':
 	main()

@@ -43,9 +43,14 @@ def make_folder(folder_name):
 	return folder_path
 
 def get_file_name(file_path):
-	slash_index = [pos for pos, char in enumerate(file_path) if char == '\\']
-	file_name = file_path[slash_index[len(slash_index)-1]+1:len(file_path)]
-	file_name = file_name.split('.')[0]
+	try:
+		slash_index = [pos for pos, char in enumerate(file_path) if char == '/']
+		file_name = file_path[slash_index[len(slash_index)-1]+1:len(file_path)]
+		file_name = file_name.split('.')[0]
+	except:
+		slash_index = [pos for pos, char in enumerate(file_path) if char == '\\']
+		file_name = file_path[slash_index[len(slash_index)-1]+1:len(file_path)]
+		file_name = file_name.split('.')[0]
 	return file_name
 
 def main():
@@ -55,3 +60,4 @@ if __name__=='__main__':
 	main()
 
 print('Imported ancillary.py!')
+

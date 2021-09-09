@@ -33,7 +33,7 @@ function activateTrigger(e){
   } else if (sheetName == '1: Print Jobs') { // JOBS ~~~~~~~~
 
     // Data from row
-    [printer, orderNum, travNum, startDay, amPm, printTime, owner, notes, totalBuildTime, totalBuildHeight] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
+    [printer, orderNum, travNum, currentActionItem, startDay, amPm, printTime, owner, notes, totalBuildTime, totalBuildHeight, totalParts, printSuccessful] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
     var rowData = {
       "Printer": printer,
       "Order #": orderNum,
@@ -44,7 +44,9 @@ function activateTrigger(e){
       "Owner": owner,
       "Description": notes,
       "Total Build Time (hours)": totalBuildTime,
-      "Total Build Height (mm)": totalBuildHeight
+      "Total Build Height (mm)": totalBuildHeight,
+      "Total Parts": totalParts,
+      "Print Successful?": printSuccessful
     };
 
 
@@ -108,7 +110,7 @@ function activateTrigger(e){
   } else if (sheetName == '2: NCMR, ECO, DCO, DEV') { 
 
     // Data from Rows
-    [itemType, itemNum, vov, travNum, orderNum, startDay, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
+    [itemType, itemNum, currentActionItem, vov, travNum, orderNum, startDay, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
     console.log(rowData);
     var description = itemType + ' ' + itemNum;
     var rowData = {
@@ -224,7 +226,7 @@ function activateTrigger(e){
   } else if (sheetName == '3: Facility') { 
 
     // Data from Rows
-    [printer, description, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
+    [printer, description, currentActionItem, owner, startDay, amPm, time, notes] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
 
     var rowData = {
       "Facility": description,
@@ -814,6 +816,9 @@ function sendEventToLog(currentSheet, masterLogSheet, subLogSheet, rowData) {
   var sheetCategories = currentSheet.getRange(1, 1, 1, currentSheet.getLastColumn()).getValues()[0];
   sheetCategories.pop();
   sheetCategories.shift();
+  if (sheetCategories.indexOf('Current Action Item') > -1) {
+    sheetCategories.splice(sheetCategories.indexOf('Current Action Item'), 1);
+  }
   console.log(rowData);
 
   var now = new Date();

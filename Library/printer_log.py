@@ -98,8 +98,6 @@ def parse_log(file_path):
 	except:
 		sys.exit('No File Selected')
 
-	print(file_path)
-
 	# Parse
 	data_fields = ['L', 'D.Tm', 'B', 'F', 'FL', 'FR', 
 	'CoaterSp', 'BlowerF', 'RPMBlowerSp', 'setp', 'real', 'Tlaser', 

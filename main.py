@@ -6,6 +6,7 @@ from Library import get_files
 from Library import printer_log
 from Library import parts_list
 from Library import ancillary
+from Library import surface_area as sa
 
 # Test Walkthrough for all Functions
 
@@ -35,4 +36,5 @@ parts_list.count_parts()
 parts_list.count_coupons()
 '''
 
-printer_log.main()
+#printer_log.main()
+sa.main()

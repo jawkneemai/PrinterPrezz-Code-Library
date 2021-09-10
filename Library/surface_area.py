@@ -22,24 +22,18 @@ from Library import ancillary
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from PIL import ImageFilter
 from skimage.filters import sobel
 from skimage import segmentation
 from skimage.color import label2rgb
 from scipy import ndimage as ndi
 
-def main():
-	root = tkint.Tk()
-	root.withdraw()
-	file_path = filedialog.askopenfilename()
-	im = Image.open(file_path)
+
+
+
+def contour_image(image):
 
 	# Get Image matrix, data
-	frames = im.n_frames
-	im.seek(61)
-	imarray = np.array(im)
-
-	voxel_size = 0.089595088
+	imarray = np.array(image)
 
 	# Region-based edge detection to get contours
 	elevation_map = sobel(imarray)
@@ -56,43 +50,67 @@ def main():
 	fig, ax = plt.subplots(figsize=(4,3))
 	ax.imshow(imarray, cmap=plt.cm.gray)
 	contours = ax.contour(seg, [1], linewidths=1.2, colors='y')
+	plt.close('all')
 
-	# Calculating length of contours
-	if contours.allsegs[0]:
-		print('theres contours')
-		contour_lengths = []
-		for contour in contours.allsegs[0]: # Set of all contours made on image
-
-			old_x = -1
-			old_y = -1
-			temp_length = 0
-
-			for coordinates in contour: # At individual contour
-				if old_x == -1:
-					old_x = coordinates[0]
-					old_y = coordinates[1]
-				else:
-					temp_x = coordinates[0]
-					temp_y = coordinates[1]
-					line_distance = sqrt((temp_x - old_x)**2 + (temp_y - old_y)**2)
-					actual_distance = voxel_size * line_distance
-					temp_length = temp_length + actual_distance
-					old_x = coordinates[0]
-					old_y = coordinates[1]
-			contour_lengths.append(temp_length)
-			
-		print(contour_lengths)
-		print(sum(contour_lengths))
-
-		# to do next: move everything out of main into functions. loop through all frames of image
+	return contours
 
 
 
-	else:
-		print('no contours')
+
+def calculate_contour_length(contour, voxel_size):
+	old_x = -1
+	old_y = -1
+	length = 0
+
+	for coordinates in contour: # At individual contour
+		if old_x == -1:
+			old_x = coordinates[0]
+			old_y = coordinates[1]
+		else:
+			temp_x = coordinates[0]
+			temp_y = coordinates[1]
+			line_distance = sqrt((temp_x - old_x)**2 + (temp_y - old_y)**2)
+			actual_distance = voxel_size * line_distance
+			length = length + actual_distance
+			old_x = coordinates[0]
+			old_y = coordinates[1]
+
+	return length
 
 
-	plt.show()
+
+
+def main():
+	root = tkint.Tk()
+	root.withdraw()
+	file_path = filedialog.askopenfilename()
+	im = Image.open(file_path)
+	voxel_size = 0.074133558
+
+
+	total_sa = 0
+
+	for i in range(368, im.n_frames):
+		print(i)
+		im.seek(i)
+		contours = contour_image(im)
+
+		# Calculating length of contours
+		if contours.allsegs[0]:
+			print('theres contours')
+			contour_lengths = []
+			for contour in contours.allsegs[0]: # Set of all contours made on image
+				contour_lengths.append(calculate_contour_length(contour, voxel_size))
+				
+			temp_sa = sum(contour_lengths) * voxel_size
+			total_sa = total_sa + temp_sa
+			print(temp_sa)
+			print(total_sa)
+		else:
+			print('no contours')
+
+
+	#plt.show()
 
 	return
 

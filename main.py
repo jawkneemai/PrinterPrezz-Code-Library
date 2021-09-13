@@ -36,5 +36,5 @@ parts_list.count_parts()
 parts_list.count_coupons()
 '''
 
-#printer_log.main()
-sa.main()
+printer_log.main()
+#a.main()

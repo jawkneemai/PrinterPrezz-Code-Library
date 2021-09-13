@@ -90,7 +90,7 @@ def main():
 
 	total_sa = 0
 
-	for i in range(368, im.n_frames):
+	for i in range(1, im.n_frames):
 		print(i)
 		im.seek(i)
 		contours = contour_image(im)

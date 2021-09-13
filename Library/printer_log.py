@@ -106,9 +106,20 @@ def parse_log(file_path):
 	# Some manual tinkering to deal with different data field formats from earlier printer logs. (Mainly "RPMBlowerSp was ModBlowerSp before and didn't exist before that. O2 data has more fields in v2 and v3.")
 	data_fields_cutoff1 = dt.strptime('10/11/2020', '%m/%d/%Y') # After this date: logs v3
 	data_fields_cutoff2 = dt.strptime('2/7/2020', '%m/%d/%Y') # Before this date: logs v1. logs v2 in between.
-	data_fields_cutoff3 = dt.strptime('9/2/2021', '%m/%d/%Y') # Logs v4, Lost Tbuild parameter
+	# data_fields_cutoff3 = dt.strptime('8/30/2021', '%m/%d/%Y') # Logs v4, Lost Tbuild parameter because they temporarily disabled build plate temperature sensor. ONLY HAPPENED ON T4295 AND T4298 for LM47.
+	
 	corrector = 0 # Corrector for earlier printer logs that had a different format.
 	log_date = get_date_from_log(file_path)
+	
+	if data_fields_cutoff2 < log_date < data_fields_cutoff1:
+		data_fields[8] = 'ModBlowerSp'
+	elif log_date < data_fields_cutoff2:
+		data_fields.remove('RPMBlowerSp')
+		data_fields.remove('setp')
+		data_fields.remove('real')
+		corrector = 3
+
+	'''
 	if log_date < data_fields_cutoff2:
 		data_fields.remove('RPMBlowerSp')
 		data_fields.remove('setp')
@@ -116,9 +127,9 @@ def parse_log(file_path):
 		corrector = 3
 	elif data_fields_cutoff2 < log_date < data_fields_cutoff1:
 		data_fields[8] = 'ModBlowerSp'
-	elif log_date > data_fields_cutoff3:
-		data_fields.remove('Tbuild')
-
+	#elif log_date > data_fields_cutoff3:
+		#data_fields.remove('Tbuild')
+	'''
 	rows = []
 	final_rows = []
 
@@ -134,6 +145,7 @@ def parse_log(file_path):
 		data_fields.insert(18, 'O2 ppm')
 		data_fields.insert(19, 'O2 %1')
 	accumulated_time = 0
+
 
 	# Messy parsing I know SORRY
 	for row in rows:
@@ -171,10 +183,17 @@ def parse_log(file_path):
 			temp_row.append(temp_split[28]) # O2 %1
 		else:
 			corrector += 4
+		
+		''' FOR T4295 AND T4298 where Tbuild was temporarily turned off
 		if log_date < data_fields_cutoff3:
 			temp_row.append(remove_colon(temp_split[30-corrector])) # Tbuild
-		else:
+		elif:
 			corrector += 1
+		'''
+		temp_row.append(remove_colon(temp_split[30-corrector])) # Tbuild
+		
+		#corrector += 1
+	
 		temp_row.append(remove_colon(temp_split[31-corrector])) # Par
 		temp_row.append(remove_colon(temp_split[32-corrector])) # Pca
 		temp_row.append(remove_colon(temp_split[33-corrector])) # dPfil

@@ -109,12 +109,13 @@ def main():
 		else:
 			print('no contours')
 
-
 	#plt.show()
 
 	return
 
+
+
 if __name__ == '__main__':
 	main()
 
-print('Imported surface_area.py!')
+print('Imported surface_area_from_ct.py!')

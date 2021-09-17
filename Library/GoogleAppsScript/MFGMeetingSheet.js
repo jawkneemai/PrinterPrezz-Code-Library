@@ -38,7 +38,7 @@ function activateTrigger(e){
       "Printer": printer,
       "Order #": orderNum,
       "Traveler #": travNum,
-      "Start Date (MM/DD)": startDay,
+      "Start Date (MM/DD)": startDay.toString(),
       "AM or PM": amPm,
       "Time (days)": printTime,
       "Owner": owner,
@@ -48,6 +48,7 @@ function activateTrigger(e){
       "Total Parts": totalParts,
       "Print Successful?": printSuccessful
     };
+    console.log(rowData);
 
 
 
@@ -92,7 +93,15 @@ function activateTrigger(e){
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
-        rowData[changedCat] = e.oldValue;
+        
+        if (changedCat == 'Start Date (MM/DD)') {
+          var x = e.oldValue; // weird thing where sheets stores dates as "number of days since Dec 30 1899"...
+          var date = new Date(Date.UTC(1899, 11, 30, 0, 0, x * 86400));
+          date.setUTCHours(date.getUTCHours() + 8);
+          rowData[changedCat] = date;
+        } else {
+          rowData[changedCat] = e.oldValue;
+        }
         removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
         fillTime(scheduleSheet, getMachineRow(printer), travNum, startDay, printTime, amPm, YELLOW, notes);
       } 
@@ -107,7 +116,7 @@ function activateTrigger(e){
 
 
 
-  } else if (sheetName == '2: NCMR, ECO, DCO, DEV') { 
+  } else if (sheetName == '2: Printer - NCMR, ECO, DCO, DEV') { 
 
     // Data from Rows
     [itemType, itemNum, currentActionItem, vov, travNum, orderNum, startDay, amPm, time, owner, printer, notes] = currentSheet.getSheetValues(rowStart, 3, 1, (currentSheet.getLastColumn()-3))[0];
@@ -181,8 +190,14 @@ function activateTrigger(e){
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
-        rowData[changedCat] = e.oldValue;
-        
+        if (changedCat == 'Start Date (MM/DD)') {
+          var x = e.oldValue; // weird thing where sheets stores dates as "number of days since Dec 30 1899"...
+          var date = new Date(Date.UTC(1899, 11, 30, 0, 0, x * 86400));
+          date.setUTCHours(date.getUTCHours() + 8);
+          rowData[changedCat] = date;
+        } else {
+          rowData[changedCat] = e.oldValue;
+        }
         
         if (changedCat == 'Printer') { // IF CHANGING PRINTER TO AND FROM MULTIPLE AFFECTED PRINTERS
           if (printer == 'Metal Printers') { // 
@@ -294,7 +309,14 @@ function activateTrigger(e){
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
-        rowData[changedCat] = e.oldValue;
+        if (changedCat == 'Start Date (MM/DD)') {
+          var x = e.oldValue; // weird thing where sheets stores dates as "number of days since Dec 30 1899"...
+          var date = new Date(Date.UTC(1899, 11, 30, 0, 0, x * 86400));
+          date.setUTCHours(date.getUTCHours() + 8);
+          rowData[changedCat] = date;
+        } else {
+          rowData[changedCat] = e.oldValue;
+        }
         removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
         fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
       } 
@@ -400,7 +422,14 @@ function activateTrigger(e){
 
       if (currentSheet.getRange(e.range.rowStart, 1, 1, 1).getValue() == true) {
         var changedCat = currentSheet.getRange(1, e.range.columnStart, 1, 1).getValue();
-        rowData[changedCat] = e.oldValue;
+                if (changedCat == 'Start Date (MM/DD)') {
+          var x = e.oldValue; // weird thing where sheets stores dates as "number of days since Dec 30 1899"...
+          var date = new Date(Date.UTC(1899, 11, 30, 0, 0, x * 86400));
+          date.setUTCHours(date.getUTCHours() + 8);
+          rowData[changedCat] = date;
+        } else {
+          rowData[changedCat] = e.oldValue;
+        }
         removeTime(scheduleSheet, getMachineRow(rowData['Printer']), rowData['Start Date (MM/DD)'], rowData['Time (days)'], rowData['AM or PM']);
         fillTime(scheduleSheet, getMachineRow(printer), description, startDay, time, amPm, RED, notes);
       } 
@@ -451,8 +480,15 @@ function activateTrigger(e){
       var fields = currentSheet.getRange(1, 1, 1, currentSheet.getLastColumn()).getValues()[0];
       var rowData = currentSheet.getRange(e.range.rowStart, 2, 1, (currentSheet.getLastColumn()-1)).getValues()[0];
       var rowDataNew = currentSheet.getRange(e.range.rowStart, 2, 1, (currentSheet.getLastColumn()-1)).getValues()[0];
-      rowData[fields.indexOf(changedCat)-1] = e.oldValue;
-
+      //rowData[fields.indexOf(changedCat)-1] = e.oldValue;
+      if (changedCat == 'Start Date (MM/DD)') {
+        var x = e.oldValue; // weird thing where sheets stores dates as "number of days since Dec 30 1899"...
+        var date = new Date(Date.UTC(1899, 11, 30, 0, 0, x * 86400));
+        date.setUTCHours(date.getUTCHours() + 8);
+        rowData[fields.indexOf(changedCat)-1] = date;
+      } else {
+        rowData[fields.indexOf(changedCat)-1] = e.oldValue;
+      }
 /* Fields: Column
   Traveler #: 2
   Item Type: 4
@@ -467,19 +503,19 @@ function activateTrigger(e){
 
       if (rowData[2] == 'Print') {
         removeTime(scheduleLog, getMachineRow(rowData[11]), rowData[7], rowData[9], rowData[8]);
-        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), rowDataNew[0], rowDataNew[7], rowDataNew[9], rowDataNew[8], YELLOW, rowDataNew[14]);
+        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), rowDataNew[0], rowDataNew[7], rowDataNew[9], rowDataNew[8], YELLOW, rowDataNew[16]);
       } else if (rowData[2] == 'Facility') {
         removeTime(scheduleLog, getMachineRow(rowData[11]), rowData[7], rowData[9], rowData[8]);
-        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), rowDataNew[6], rowDataNew[7], rowDataNew[9], rowDataNew[8], RED, rowDataNew[14]);
+        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), rowDataNew[6], rowDataNew[7], rowDataNew[9], rowDataNew[8], RED, rowDataNew[16]);
       } else if (rowData[2] == 'PM') {
         removeTime(scheduleLog, getMachineRow(rowData[11]), rowData[7], rowData[9], rowData[8]);
-        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), rowDataNew[5], rowDataNew[7], rowDataNew[9], rowDataNew[8], RED, rowDataNew[14]);
+        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), rowDataNew[5], rowDataNew[7], rowDataNew[9], rowDataNew[8], RED, rowDataNew[16]);
       } else if (rowData[2] == 'N/A') {
         return;
       } else { // Then one of NCMR,ECO,DCO,DEV.
         var description = rowDataNew[2] + ' ' + rowDataNew[3];
         removeTime(scheduleLog, getMachineRow(rowData[11]), rowData[7], rowData[9], rowData[8]);
-        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), description, rowDataNew[7], rowDataNew[9], rowDataNew[8], RED, rowDataNew[14]);
+        fillTime(scheduleLog, getMachineRow(rowDataNew[11]), description, rowDataNew[7], rowDataNew[9], rowDataNew[8], RED, rowDataNew[16]);
       }
     
       return;
@@ -572,7 +608,6 @@ function fillTime(sheet, machineRow, display, startDate, time, amPm, statusColor
   }
   var timeBlock = Math.round(time*2);
   var endCol = startCol + timeBlock;
-  
   if (endCol > 731) {
     Browser.msgBox('Time slot goes past current schedule!');
     return
@@ -582,8 +617,6 @@ function fillTime(sheet, machineRow, display, startDate, time, amPm, statusColor
   
   if (slot.getBackgrounds()[0].every((background) => background == GREEN)) {
     slot.merge();
-    //var centerCol = Math.round(slot.getNumColumns()/2);
-
     slot.setBackground(statusColor);
     slot.setValue(display);
     slot.setHorizontalAlignment('center');
@@ -698,7 +731,7 @@ function conflictResolve(slot, travNum, statusColor, note, sheet) {
   slot.setHorizontalAlignment('center');
   slot.setVerticalAlignment('middle');
   slot.setNote(note);
-  slot.setBorder(null, true, null, true, null, null, '#000000', SpreadsheetApp.BorderStyle.DASHED);
+  //slot.setBorder(null, true, null, true, null, null, '#000000', SpreadsheetApp.BorderStyle.DASHED);
 }
 
 
@@ -706,34 +739,91 @@ function conflictResolve(slot, travNum, statusColor, note, sheet) {
 
 // Removes time slot from schedule.
 function removeTime(sheet, machineRow, startDate, time, amPm) {
-  if (machineRow == 0) {
-    return;
-  }
-  var dateRow = sheet.getSheetValues(6,2,1,(sheet.getLastColumn()-2))[0];
-  var startCol = 0;
-  var timeBlock = Math.round(time*2);
-  for (let i = 0; i < dateRow.length; i++) {
-    if (String(startDate) == String(dateRow[i])) {
-      if (amPm == 'AM') {
-        startCol = i+2;
-      } else if (amPm == 'PM') {
-        startCol = i+3;
-      } else {
-        console.log('Error with time slot.');
-        return;
+  if (typeof(startDate) == 'string') {
+    console.log('startDate is string');
+    if (machineRow == 0) {
+      return;
+    }
+    console.log(startDate);
+    console.log(typeof(startDate));
+    var dateRow = sheet.getRange(6,2,1,(sheet.getLastColumn()-2)).getValues()[0];
+    var startCol = 0;
+    var timeBlock = Math.round(time*2);
+    for (let i = 0; i < dateRow.length; i++) {
+      if (dateRow[i]) {
+        if (String(startDate) == String(dateRow[i])) {
+          if (amPm == 'AM') {
+            startCol = i+2;
+            break;
+          } else if (amPm == 'PM') {
+            startCol = i+3;
+            break;
+          } else {
+            console.log('Error with time slot.');
+            return;
+          }
+        }
       }
     }
-  }
 
-  if (startCol < 1) {
-    Browser.msgBox('Time slot goes before current schedule!');
-    return
+    console.log(startCol);
+    if (startCol < 1) {
+      Browser.msgBox('Time slot goes before current schedule!');
+      return
+    }
+    var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
+    slot.setNote('');
+    slot.setBackground(GREEN);
+    slot.clearContent();
+    slot.breakApart();
+
+
+
+
+
+  } else {
+    console.log('startTime is object');
+    if (machineRow == 0) {
+      return;
+    }
+    console.log(startDate);
+    console.log(typeof(startDate));
+    var dateRow = sheet.getRange(6,2,1,(sheet.getLastColumn()-2)).getValues()[0];
+    var startCol = 0;
+    var timeBlock = Math.round(time*2);
+    for (let i = 0; i < dateRow.length; i++) {
+      if (dateRow[i]) {
+        if (startDate.getDate() == dateRow[i].getDate() && startDate.getMonth() == dateRow[i].getMonth()) {
+          console.log(startDate);
+          console.log(typeof(startDate));
+          console.log(dateRow[i]);
+          console.log(typeof(dateRow[i]));
+          if (amPm == 'AM') {
+            startCol = i+2;
+            break;
+          } else if (amPm == 'PM') {
+            startCol = i+3;
+            break;
+          } else {
+            console.log('Error with time slot.');
+            return;
+          }
+        }
+      }
+    }
+
+    console.log(startCol);
+    console.log(timeBlock);
+    if (startCol < 1) {
+      Browser.msgBox('Time slot goes before current schedule!');
+      return
+    }
+    var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
+    slot.setNote('');
+    slot.setBackground(GREEN);
+    slot.clearContent();
+    slot.breakApart();
   }
-  var slot = sheet.getRange(machineRow, startCol, 1, timeBlock);
-  slot.setNote('');
-  slot.setBackground(GREEN);
-  slot.clearContent();
-  slot.breakApart();
   return
 }
 

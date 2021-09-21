@@ -1,4 +1,5 @@
 # Johnathan Mai
+# required pip modules: gspread, --upgrade google-api-python-client oauth2client
 
 '''
 Directory of Functions
@@ -49,6 +50,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaIoBaseDownload
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
+import gspread
 
 # Functions
 # If modifying these scopes, delete the file token.json.
@@ -95,6 +99,7 @@ def get_log_files():
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
+	SCOPES = ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/spreadsheets.readonly']
 	if os.path.exists('token.json'):
 		creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     # If there are no (valid) credentials available, let the user log in.
@@ -160,6 +165,8 @@ def get_log_files():
 def get_parts_list():
 	# Credentials and drive_service Building
 	creds = None
+	SCOPES = ['https://www.googleapis.com/auth/drive.readonly', 
+				'https://www.googleapis.com/auth/spreadsheets.readonly']
 	if os.path.exists('token.json'):
 		creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 	if not creds or not creds.valid:
@@ -178,14 +185,26 @@ def get_parts_list():
 	drive_id = '0AC-_NOteXDL4Uk9PVA' # Manufacturing Drive
 	build_rt_id = '1lNxvM7WIKcGfM-XR-nAbP6nT0NtYPC7T'
 
+	# queries from travelers T4210 and before
+
+	# queries from travelers T4211 - T4282
 	query_travelers = "trashed=false and mimeType='application/vnd.google-apps.folder' and name contains 'T4'"
 	query_run_traveler = "trashed=false and mimeType='application/vnd.google-apps.folder' and name contains 'Run Traveler'"
 	query_parts_lists = "trashed=false and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'"
+
+	# queries from travelers T4283 and above, AKA Traveler 2.0
+	query_travelers2 = "trashed=false and mimeType='application/vnd.google-apps.folder' and name contains 'T4'"
+	query_run_traveler2 = "trashed=false and mimeType='application/vnd.google-apps.folder' and name contains 'Traveler Forms'"
+	query_parts_lists2 = "trashed=false and mimeType='application/vnd.google-apps.spreadsheet'"
+
+
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     # Gets all log files folders
 
+    # T4211 - T4282
+	'''
 	page_token = None
 	traveler_folder_ids = [] # This is the whole Traveler folder ("T####")
 	while True:
@@ -212,8 +231,6 @@ def get_parts_list():
 		results = search_drive(drive_service, drive_id, query_parts_lists, page_token)
 		for xlsx in results.get('files', []):
 			if xlsx['parents'][0] in run_traveler_folder_ids:
-				#print(xlsx['id'] + ': ' + xlsx['name'] + ', ' + xlsx['mimeType'])
-				#print(xlsx['parents'])
 				parts_lists.append(xlsx)
 		page_token = results.get('nextPageToken', None)
 		if page_token is None:
@@ -226,7 +243,65 @@ def get_parts_list():
 	for file in parts_lists:
 		temp_path = parts_folder_path + '\\' + file['name']
 		download_file_google_api(drive_service, file, temp_path)
+	'''
 
+
+	# T4283 + 
+	''' 
+
+	Currently: uses a google service account to try access google files (sheets and docs), since the above method can't. however google service accounts can't access shared folders (MFG) because they are considered a different google account than my printerprezz one. :(
+
+	page_token = None
+	traveler_folder_ids = [] # This is the whole Traveler folder ("T####")
+	while True:
+		results = search_drive(drive_service, drive_id, query_travelers2, page_token)
+		for folder in results.get('files', []):
+			if folder['parents'][0] == build_rt_id: # If "T####" folder has parent Printing Projects (RT)
+				traveler_folder_ids.append(folder['id']) 
+		page_token = results.get('nextPageToken', None)
+		if page_token is None:
+			break
+
+	run_traveler_folder_ids = [] # This is "Run Traveler" folder inside the T#### Folders
+	while True:
+		results = search_drive(drive_service, drive_id, query_run_traveler2, page_token)
+		for folder in results.get('files', []):
+			if folder['parents'][0] in traveler_folder_ids: # If "Run Traveler" folder has parent "T####"
+				run_traveler_folder_ids.append(folder['id'])
+		page_token = results.get('nextPageToken', None)
+		if page_token is None:
+			break
+
+	parts_lists = [] # The parts list files in the "Run Traveler" folders.
+	while True:
+		results = search_drive(drive_service, drive_id, query_parts_lists2, page_token)
+		for xlsx in results.get('files', []):
+			if xlsx['parents'][0] in run_traveler_folder_ids:
+				parts_lists.append(xlsx)
+		page_token = results.get('nextPageToken', None)
+		if page_token is None:
+			break
+	print(parts_lists)
+
+
+	parts_folder_path = os.getcwd() + '\\Data\\parts_lists'
+	if not os.path.isdir(parts_folder_path):
+		os.mkdir(parts_folder_path)
+	
+	scope = ['https://www.googleapis.com/auth/drive.readonly', 
+			'https://spreadsheets.google.com/feeds']
+	creds = ServiceAccountCredentials.from_json_keyfile_name('programatically-gett-files-5743fd8b95e5.json', scope)
+	client = gspread.authorize(creds)
+	for file in parts_lists:
+		#temp_path = parts_folder_path + '\\' + file['name']
+		#download_file_google_api(drive_service, file, temp_path)
+		print(file['name'])
+		temp_path = 'https://docs.google.com/spreadsheets/d/' + file['id']
+		print(temp_path)
+		temp_sheet = client.open_by_url(temp_path).get_worksheet(0)
+		print(temp_sheet.col_count)
+		print(temp_sheet.get_all_records())
+	'''
 
 	'''
 	sheet_id = '12YyOQkhb8BkgVuDe-xqOPBQxVbnUjzMQ'
@@ -241,7 +316,7 @@ def get_parts_list():
 
 def main(): 
 	print('What do you want to do?')
-	#get_parts_list()
+	get_parts_list()
 	#get_files()
 
 if __name__ == '__main__':

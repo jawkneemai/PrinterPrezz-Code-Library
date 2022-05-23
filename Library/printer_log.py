@@ -20,9 +20,10 @@ time_difference(time_start, time_end)
 	Input: python datetime objects, time_start and time_end. Must have equivalent time fields (either date, date & time, or time)
 	Returns: string, the time difference in SECONDS.
 
-parse_log(file_path)
+parse_log(file_path, destination_folder_path)
 	Purpose: Takes .log file from a print job, parses all of the print data into readable columns in an .xlsx
-	Input: string, file path of the .log file
+	Input: file_path(string)- file path of the .log file
+			destination_folder_path(string)- folder path where you want to put .xlsx file
 	Returns: Nothing. Creates .xlsx file in designated folder corresponding to that .log file, with the data fields for every print layer.
 
 get_date_from_log(file_path)
@@ -52,6 +53,12 @@ def plot_log_xy(file_path, x_field, y_field, save=False):
 			y_label(string)- Label for y-axis. If empty, will default to y_field from log file.
 			save(bool)- Save file (or not) with file_path name in current working directory.
 			add_to_previous_plot(bool)- Overlays plot with previous plot or not. Default: false
+
+def sort_logs_by_machine(folder_path):
+	Purpose: Sorts the log files in the selected folder path by machine. (LM47, LM74, etc) Will create folders by machine in given folder path.
+	Input: folder_path(string)- path to folder containing lof giles.
+	Returns: Nothing
+
 '''
 
 ## Imports ##
@@ -91,7 +98,7 @@ def time_difference(time_start, time_end):
 		t_elapsed = t_start - t_end
 	return t_elapsed.total_seconds()
 
-def parse_log(file_path):
+def parse_log(file_path, destination_folder_path):
 	# File Open
 	try:
 		printerlog = open(file_path, 'r')
@@ -106,7 +113,7 @@ def parse_log(file_path):
 	# Some manual tinkering to deal with different data field formats from earlier printer logs. (Mainly "RPMBlowerSp was ModBlowerSp before and didn't exist before that. O2 data has more fields in v2 and v3.")
 	data_fields_cutoff1 = dt.strptime('10/11/2020', '%m/%d/%Y') # After this date: logs v3
 	data_fields_cutoff2 = dt.strptime('2/7/2020', '%m/%d/%Y') # Before this date: logs v1. logs v2 in between.
-	# data_fields_cutoff3 = dt.strptime('8/30/2021', '%m/%d/%Y') # Logs v4, Lost Tbuild parameter because they temporarily disabled build plate temperature sensor. ONLY HAPPENED ON T4295 AND T4298 for LM47.
+	#data_fields_cutoff3 = dt.strptime('8/30/2021', '%m/%d/%Y') # Logs v4, Lost Tbuild parameter because they temporarily disabled build plate temperature sensor. ONLY HAPPENED ON T4295 AND T4298 for LM47.
 	
 	corrector = 0 # Corrector for earlier printer logs that had a different format.
 	log_date = get_date_from_log(file_path)
@@ -119,7 +126,7 @@ def parse_log(file_path):
 		data_fields.remove('real')
 		corrector = 3
 
-	'''
+	''' T4295 AND T4298 for LM47 fix
 	if log_date < data_fields_cutoff2:
 		data_fields.remove('RPMBlowerSp')
 		data_fields.remove('setp')
@@ -127,9 +134,10 @@ def parse_log(file_path):
 		corrector = 3
 	elif data_fields_cutoff2 < log_date < data_fields_cutoff1:
 		data_fields[8] = 'ModBlowerSp'
-	#elif log_date > data_fields_cutoff3:
-		#data_fields.remove('Tbuild')
+	elif log_date > data_fields_cutoff3:
+		data_fields.remove('Tbuild')
 	'''
+
 	rows = []
 	final_rows = []
 
@@ -185,11 +193,15 @@ def parse_log(file_path):
 			corrector += 4
 		
 		''' FOR T4295 AND T4298 where Tbuild was temporarily turned off
+		
 		if log_date < data_fields_cutoff3:
 			temp_row.append(remove_colon(temp_split[30-corrector])) # Tbuild
-		elif:
+		else:
 			corrector += 1
+		
 		'''
+
+
 		temp_row.append(remove_colon(temp_split[30-corrector])) # Tbuild
 		
 		#corrector += 1
@@ -200,8 +212,9 @@ def parse_log(file_path):
 		# ~~~~~~~~~~~~~~~~~~~~~~~~
 		final_rows.append(temp_row)
 
+
 	# Write to xls
-	xls_folder_path = os.getcwd() + '\\Data\\ParsedLogs'
+	xls_folder_path = destination_folder_path
 	if not os.path.isdir(xls_folder_path):
 		os.mkdir(xls_folder_path)
 	excelPath = xls_folder_path + '\\' + ancillary.get_file_name(file_path)
@@ -237,10 +250,17 @@ def get_machine_from_log(file_path):
 		sys.exit('No File Selected.')
 	for temp_line in printerlog:
 		if 'Machine: ' in temp_line:
-			machine = temp_line.split()[-1]
+			substring = temp_line.split()[-1]
+			if ' ' in substring:
+				machine = substring
+			elif ' ' not in substring:
+				machine = substring.split('M')[-1]
+			else:
+				sys.exit('Something wonky with machine name.')
 			break
 		else: 
 			continue
+		printerlog.close()
 	return machine
 
 def compile_data_from_logs(folder_path, master_path):
@@ -252,8 +272,11 @@ def compile_data_from_logs(folder_path, master_path):
 		temp_wb = load_workbook(path)
 		temp_log = read_excel(path, engine='openpyxl')
 		temp_machine = temp_wb.sheetnames[0]
+		temp_traveler = path.split('\\')[-1].split('-')[0].split('_')[0]
 
 		# QUERY SPECIFIC DATA HERE
+
+		''' O2 vs. time for all __ travelers
 		if '47' in temp_machine: # Looking for all logs from LM47 Steve
 			temp_name = pandas.Series([ancillary.get_file_name(path), '', '', '', '', '', 'Accumulated Time (s)'])
 			temp_data = temp_log['Accumulated Time (s)'].transpose()
@@ -274,6 +297,26 @@ def compile_data_from_logs(folder_path, master_path):
 			temp_df = temp_df.append(pandas.DataFrame(temp_data.append(temp_o2.transpose(), ignore_index=True)).transpose())
 
 			master_df = master_df.append(temp_df)
+		'''
+
+		# EDIT THIS TO OBTAIN WHATEVER CATEGORY ~~~~~~~~~~~~~~~~~~~~~~~~~~
+		# End Feeder % and O2 PPM for every file
+		print(temp_traveler)
+		temp_date = temp_log['Date'][0]
+		temp_f = temp_log['F'].iloc[-1]
+		temp_o2ppm = temp_log['O2 ppm'].iloc[-1]
+		temp_buildheight = temp_log['L'].iloc[-1] * 0.03
+		temp_df = pandas.DataFrame(np.array([
+					[temp_traveler, temp_date, temp_f, temp_o2ppm, temp_buildheight]]),
+					columns=['Traveler', 'Date', 'F', 'O2 ppm', 'Build Height (mm)'],
+					dtype='object')
+		
+		# Sort traveler number
+
+		master_df = master_df.append(temp_df)
+
+
+
 
 		print(master_df)
 
@@ -308,14 +351,41 @@ def plot_log_xy(file_path, x_field, y_field, title='', x_label='', y_label='', s
 	pyplot.show(block=False)
 	return
 
+def sort_logs_by_printer(folder_path):
+	files = [f for f in os.listdir(folder_path) if ('deposition' in f)]
+	for file in files:
+		machine = get_machine_from_log(folder_path + '/' + file)
+		machine = 'LM' + machine
+		machine_folder_path = folder_path + '/' + machine
+		file_name = file.split('/')[-1]
+		if not os.path.isdir(machine_folder_path):
+			os.mkdir(machine_folder_path)
+		os.rename(folder_path + '/' + file_name, machine_folder_path + '/' + file_name)
+
+
+
+
 def main():
 	#try:
 	root = tkint.Tk()
 	root.withdraw()
 	file_path = filedialog.askopenfilename()
-	parse_log(file_path)
-	#except:
-		#print('No File Selected.')
+	folder_path = filedialog.askdirectory()
+	parse_log(file_path, folder_path + '/ParsedLogs')
+	
+	#sort_logs_by_printer(folder_path)
+	
+# Parsing every log in this folder path
+#	log_files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+#	for file in log_files:
+#		file_path = folder_path + '/' + file
+#		print(file_path)
+#		parse_log(file_path, folder_path + '/ParsedLogs')
+
+	#file_name = 'FeedandO2.xlsx'
+	#compile_data_from_logs(folder_path, folder_path + '/' + file_name)
+
+	
 
 if __name__ == '__main__':
 	main()

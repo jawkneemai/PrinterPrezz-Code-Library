@@ -37,6 +37,7 @@ parts_list.count_parts()
 parts_list.count_coupons()
 '''
 
-#printer_log.main()
+printer_log.main()
+#get_files.main()
 
-get_files.main()
+#surface_area_from_ct.main()

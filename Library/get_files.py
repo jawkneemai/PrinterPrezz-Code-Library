@@ -124,7 +124,8 @@ def get_log_files():
 	# Edit this query for any file in Google Drive
 	query_log_folder = "trashed=false and name='Log Files' and mimeType='application/vnd.google-apps.folder'"
 	query_deposition_logs = "trashed=false and name contains 'deposition' and name contains '.log'"
-    
+	query_all_logs = "trashed=false and name contains '.log'"
+
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     # Gets all log files folders
@@ -141,10 +142,10 @@ def get_log_files():
 	# Get all deposition log files and see if their parent ID exists in folder list^
 	log_files = []
 	while True:
-		results = search_drive(drive_service, drive_id, query_deposition_logs, page_token)
+		results = search_drive(drive_service, drive_id, query_all_logs, page_token)
 		for file in results.get('files', []):
-			#if file['parents'][0] in log_folder_ids:
-			log_files.append(file)
+			if file['parents'][0] in log_folder_ids:
+				log_files.append(file)
 		page_token = results.get('nextPageToken', None)
 		if page_token is None:
 			break
@@ -155,8 +156,9 @@ def get_log_files():
 		os.mkdir(logs_folder_path)
 	
 	for file in log_files:
-		temp_path = logs_folder_path + '\\' + file['name']
-		download_file_google_api(drive_service, file, temp_path)
+		if 'deposition' in file['name']:
+			temp_path = logs_folder_path + '\\' + file['name']
+			download_file_google_api(drive_service, file, temp_path)
 
 	return logs_folder_path
 
@@ -316,8 +318,9 @@ def get_parts_list():
 
 def main(): 
 	print('What do you want to do?')
-	get_parts_list()
+	#get_parts_list()
 	#get_files()
+	get_log_files()
 
 if __name__ == '__main__':
 	main()

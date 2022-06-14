@@ -361,8 +361,7 @@ def sort_logs_by_printer(folder_path):
 		if not os.path.isdir(machine_folder_path):
 			os.mkdir(machine_folder_path)
 		os.rename(folder_path + '/' + file_name, machine_folder_path + '/' + file_name)
-
-
+		
 
 
 def main():

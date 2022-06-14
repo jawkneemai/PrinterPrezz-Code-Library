@@ -316,6 +316,72 @@ def get_parts_list():
 		print('%s, %s' % (row[0], row[4]))
 	'''
 
+def get_wyze_cam_footage(): 
+	# Credentials and drive_service Building
+	creds = None
+	SCOPES = ['https://www.googleapis.com/auth/drive.readonly', 
+				'https://www.googleapis.com/auth/spreadsheets.readonly']
+	if os.path.exists('token.json'):
+		creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+	if not creds or not creds.valid:
+		if creds and creds.expired and creds.refresh_token:
+			creds.refresh(Request())
+		else:
+			flow = InstalledAppFlow.from_client_secrets_file(
+				'credentials.json', SCOPES)
+			creds = flow.run_local_server(port=0)
+		with open('token.json', 'w') as token:
+			token.write(creds.to_json())
+	drive_service = build('drive', 'v3', credentials=creds)
+	sheets_service = build('sheets', 'v4', credentials=creds)
+
+    # Getting Wyze Cam Footage from Traveler documents in Manufacturing > Projects > Printing Projects > PrinterPrezz Build (RT) > T### > Wyze Cam Footage
+	drive_id = '0AC-_NOteXDL4Uk9PVA' # Manufacturing Drive
+	build_rt_id = '1lNxvM7WIKcGfM-XR-nAbP6nT0NtYPC7T'
+
+	# queries for Wyze Cam footage
+	query_log_folder = "trashed=false and name='Wyze Cam Footage' and mimeType='application/vnd.google-apps.folder'"
+	query_deposition_logs = "trashed=false and name contains 'deposition' and name contains '.log'"	
+	query_all_wyze_zips = "trashed=false and name contains 'Chamber.zip'"
+
+
+	# ~~~~~ Begin grabbing files ~~~~~
+
+	# Parent folders
+	log_folder_ids = []
+	page_token = None
+	while True:
+		results = search_drive(drive_service, drive_id, query_log_folder, page_token)		
+		for folder in results.get('files', []):
+			log_folder_ids.append(folder['id'])
+		page_token = results.get('nextPageToken', None)
+		if page_token is None:
+			break
+
+	# Get all deposition log files and see if their parent ID exists in folder list^
+	log_files = []
+	while True:
+		results = search_drive(drive_service, drive_id, query_all_logs, page_token)
+		for file in results.get('files', []):
+			if file['parents'][0] in log_folder_ids:
+				log_files.append(file)
+		page_token = results.get('nextPageToken', None)
+		if page_token is None:
+			break
+
+	# Downloading log files
+	logs_folder_path = os.getcwd() + '\\Data\\log_files'
+	if not os.path.isdir(logs_folder_path):
+		os.mkdir(logs_folder_path)
+	
+	for file in log_files:
+		if 'deposition' in file['name']:
+			temp_path = logs_folder_path + '\\' + file['name']
+			download_file_google_api(drive_service, file, temp_path)
+
+	return logs_folder_path
+
+
 def main(): 
 	print('What do you want to do?')
 	#get_parts_list()
